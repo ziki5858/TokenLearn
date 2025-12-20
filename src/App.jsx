@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
+import CreateUserPage from './pages/CreateUserPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HomePage from './pages/HomePage';
 import LessonPage from './pages/LessonPage';
 import PersonalAreaPage from './pages/PersonalAreaPage';
@@ -10,6 +12,8 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<CreateUserPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       
       <Route element={<AppLayout />}>
         <Route path="/home" element={<HomePage />} />

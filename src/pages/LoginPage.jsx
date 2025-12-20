@@ -2,6 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../components/Button";
 import Input from "../components/Input";
+import Card from "../components/Card";
+import Divider from "../components/Divider";
+import LinkButton from "../components/LinkButton";
+import googleIcon from "../assets/googleLogo.png";
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -19,11 +24,11 @@ export default function LoginPage() {
   }
 
   function handleForgotPassword() {
-    alert("בקרוב: ניצור חלון 'שכחתי סיסמה' ונחבר אותו ל-Router.");
+    navigate("/forgot-password");
   }
 
   function handleRegister() {
-    alert("בקרוב: ניצור חלון 'יצירת משתמש חדש' ונחבר אותו ל-Router.");
+    navigate("/register");
   }
 
   return (
@@ -33,94 +38,72 @@ export default function LoginPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 16
+        padding: 16,
+        backgroundColor: "#e6f7ff"
+        
       }}
     >
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          width: 380,
-          border: "1px solid #eee",
-          borderRadius: 16,
-          padding: 20,
-          background: "white"
-        }}
-      >
-        <h1 style={{ marginTop: 0, marginBottom: 6 }}>Login</h1>
-        <p style={{ marginTop: 0, marginBottom: 16, color: "#666" }}>
-          Sign in to continue
-        </p>
+      <Card>
+        <form onSubmit={handleSubmit}>
+            
+         <h1 style={{ textAlign: "center", marginBottom: 24 }}>TokenLearn</h1> 
+          <h2 style={{ marginTop: 0, marginBottom: 6 }}>Login</h2>
+          <p style={{ marginTop: 0, marginBottom: 16, color: "#666" }}>
+            Sign in to continue
+          </p>
 
-        <div style={{ display: "grid", gap: 12 }}>
-          {/* Google login */}
-          <Button type="button" onClick={handleGoogleLogin}>
+          <div style={{ display: "grid", gap: 12 }}>
+       <Button type="button" onClick={handleGoogleLogin}>
+        <span
+            style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8
+            }}
+        >
             Continue with Google
-          </Button>
+            <img
+            src={googleIcon}
+            alt="Google"
+            style={{ width: 18, height: 18, objectFit: "contain" }}
+            />
+        </span>
+        </Button>
 
-          {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ height: 1, background: "#eee", flex: 1 }} />
-            <span style={{ fontSize: 12, color: "#888" }}>or</span>
-            <div style={{ height: 1, background: "#eee", flex: 1 }} />
+
+            <Divider label="or" />
+
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              placeholder="name@example.com"
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={setPassword}
+              placeholder="••••••••"
+            />
+
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <LinkButton onClick={handleForgotPassword} fontSize={13}>
+                Forgot password?
+              </LinkButton>
+            </div>
+
+            <Button type="submit">Sign in</Button>
+
+            <div style={{ textAlign: "center", marginTop: 6, fontSize: 14 }}>
+              Don&apos;t have an account?{" "}
+              <LinkButton onClick={handleRegister}>Create one</LinkButton>
+            </div>
           </div>
-
-          {/* Email & Password */}
-          <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={setEmail}
-            placeholder="name@example.com"
-          />
-          <Input
-            label="Password"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            placeholder="••••••••"
-          />
-
-          {/* Forgot password */}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                color: "#1a73e8",
-                cursor: "pointer",
-                fontSize: 13
-              }}
-            >
-              Forgot password?
-            </button>
-          </div>
-
-          {/* Submit */}
-          <Button type="submit">Sign in</Button>
-
-          {/* Register */}
-          <div style={{ textAlign: "center", marginTop: 6, fontSize: 14 }}>
-            Don&apos;t have an account?{" "}
-            <button
-              type="button"
-              onClick={handleRegister}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                color: "#1a73e8",
-                cursor: "pointer",
-                fontSize: 14
-              }}
-            >
-              Create one
-            </button>
-          </div>
-        </div>
-      </form>
+        </form>
+      </Card>
     </div>
   );
 }
