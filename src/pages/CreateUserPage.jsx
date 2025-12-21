@@ -29,8 +29,8 @@ export default function CreateUserPage() {
     }
 
     // No backend yet - mocking signup
-    alert("User created successfully!");
-    navigate("/login");
+    alert("User created successfully! Redirecting to your personal area to finish setup.");
+    navigate("/me");
   }
 
   function handleGoogleSignup() {

@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import LessonPage from './pages/LessonPage';
 import PersonalAreaPage from './pages/PersonalAreaPage';
 import RatingPage from './pages/RatingPage';
+import FindTutorPage from './pages/FindTutorPage';
 import AppLayout from './layouts/AppLayout';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       
       <Route element={<AppLayout />}>
         <Route path="/home" element={<HomePage />} />
+        <Route path="/find-tutor" element={<FindTutorPage />} />
         <Route path="/lesson/:id" element={<LessonPage />} />
         <Route path="/me" element={<PersonalAreaPage />} />
         <Route path="/rating" element={<RatingPage />} />

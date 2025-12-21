@@ -26,9 +26,13 @@ export default function FooterStoryAndRules() {
 
 const styles = {
   footer: {
-    background: "white",
-    border: "1px solid #eaeaea",
-    borderRadius: 14,
-    padding: 16
+    background: "linear-gradient(135deg, #ffffff 0%, #f4f7ff 100%)",
+    border: "1px solid #dbeafe",
+    borderRadius: 16,
+    padding: 16,
+    boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: 12
   }
 };

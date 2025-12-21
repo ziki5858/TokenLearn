@@ -11,6 +11,7 @@ export default function AppLayout() {
       }}>
         <nav style={{ display: 'flex', gap: '1rem' }}>
           <Link to="/home">Home</Link>
+          <Link to="/find-tutor">Find Tutor</Link>
           <Link to="/me">Personal Area</Link>
           <Link to="/rating">Rating</Link>
         </nav>
