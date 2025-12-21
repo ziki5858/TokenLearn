@@ -15,12 +15,12 @@ export default function LoginPage() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    // כרגע בלי שרת - מדמים התחברות
+    // No backend yet - mocking login
     navigate("/home");
   }
 
   function handleGoogleLogin() {
-    alert("התחברות עם Google (מדומה). בהמשך נחבר OAuth אמיתי.");
+    alert("Google login (mock). We will hook up real OAuth later.");
   }
 
   function handleForgotPassword() {

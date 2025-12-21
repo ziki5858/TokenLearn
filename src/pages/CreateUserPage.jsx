@@ -19,22 +19,22 @@ export default function CreateUserPage() {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      alert("הסיסמאות אינן תואמות");
+      alert("Passwords do not match");
       return;
     }
 
     if (!email || !password || !secretQuestion || !secretAnswer) {
-      alert("נא למלא את כל השדות");
+      alert("Please fill out all fields");
       return;
     }
 
-    // כרגע בלי שרת - מדמים הרשמה
-    alert("המשתמש נוצר בהצלחה!");
+    // No backend yet - mocking signup
+    alert("User created successfully!");
     navigate("/login");
   }
 
   function handleGoogleSignup() {
-    alert("הרשמה עם Google (מדומה). בהמשך נחבר OAuth אמיתי.");
+    alert("Google signup (mock). We will hook up real OAuth later.");
   }
 
   function handleBackToLogin() {

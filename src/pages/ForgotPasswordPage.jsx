@@ -5,7 +5,7 @@ import Input from "../components/Input";
 import Card from "../components/Card";
 import LinkButton from "../components/LinkButton";
 
-// משתמשים מדומים - בהמשך יגיעו מהשרת
+// Mock users - will be fetched from the server later
 const MOCK_USERS = {
   "user@example.com": {
     secretQuestion: "What is your pet's name?",
@@ -20,7 +20,7 @@ const MOCK_USERS = {
 };
 
 export default function ForgotPasswordPage() {
-  const [step, setStep] = useState(1); // שלב 1: הזנת אימייל, שלב 2: תשובה לשאלה
+  const [step, setStep] = useState(1); // Step 1: enter email, Step 2: answer question
   const [email, setEmail] = useState("");
   const [answer, setAnswer] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
     const user = MOCK_USERS[email.toLowerCase()];
     
     if (!user) {
-      setError("משתמש לא נמצא במערכת");
+      setError("User not found");
       return;
     }
 
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
       setRevealedPassword(currentUser.password);
       setStep(3);
     } else {
-      setError("התשובה שגויה. נסה שוב.");
+      setError("Incorrect answer. Try again.");
       setAnswer("");
     }
   }
