@@ -1,20 +1,91 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/useApp";
 
 export default function PendingRequests({ requests, onApprove, onReject }) {
   const navigate = useNavigate();
   const { addNotification } = useApp();
+  const [timers, setTimers] = useState({});
+
+  // Calculate time remaining until approval deadline (6 hours before lesson)
+  const calculateTimeRemaining = (lessonDateTime) => {
+    const now = new Date();
+    const lessonDate = new Date(lessonDateTime);
+    
+    // Deadline: 6 hours before lesson
+    const deadline = new Date(lessonDate.getTime() - 6 * 60 * 60 * 1000);
+    
+    const diff = deadline.getTime() - now.getTime();
+    
+    if (diff <= 0) {
+      return { expired: true, text: "Expired", hours: 0, minutes: 0 };
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return {
+      expired: false,
+      text: `${hours}h ${minutes}m`,
+      hours,
+      minutes
+    };
+  };
+
+  // Format lesson date for display
+  const formatLessonDate = (lessonDateTime) => {
+    const date = new Date(lessonDateTime);
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const isToday = date.toDateString() === now.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+    
+    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    
+    if (isToday) {
+      return `Today ${timeStr}`;
+    } else if (isTomorrow) {
+      return `Tomorrow ${timeStr}`;
+    } else {
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `${dateStr} ${timeStr}`;
+    }
+  };
+
+  // Update timers every minute
+  useEffect(() => {
+    const updateTimers = () => {
+      const newTimers = {};
+      requests.forEach(r => {
+        if ((r.status === "Pending" || r.status === "pending") && r.lessonDateTime) {
+          newTimers[r.id] = calculateTimeRemaining(r.lessonDateTime);
+        }
+      });
+      setTimers(newTimers);
+    };
+    
+    updateTimers();
+    const interval = setInterval(updateTimers, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, [requests]);
 
   const handleViewRequests = () => {
     navigate("/lesson-requests");
   };
 
   const handleApprove = (request) => {
+    const timer = timers[request.id];
+    if (timer?.expired) {
+      addNotification("Cannot approve: approval deadline has passed (must approve 6+ hours before lesson)", "error");
+      return;
+    }
+    
     if (onApprove) {
       onApprove(request.id);
     } else {
-      // Navigate to dedicated page if no handler provided
       navigate("/lesson-requests");
     }
   };
@@ -23,15 +94,21 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
     if (onReject) {
       onReject(request.id);
     } else {
-      // Navigate to dedicated page if no handler provided
       navigate("/lesson-requests");
     }
   };
 
-  // Filter only pending requests
+  // Filter out expired requests - they are automatically cancelled
   const activeRequests = requests.filter(r => {
     const isPending = r.status === "Pending" || r.status === "pending";
-    return isPending;
+    if (!isPending) return true; // Show non-pending requests
+    
+    const timer = timers[r.id];
+    // Auto-cancel expired pending requests
+    if (timer?.expired) {
+      return false; // Don't show expired requests
+    }
+    return true;
   });
 
   return (
@@ -51,6 +128,14 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
         <div style={styles.list}>
           {activeRequests.map(r => {
             const isPending = r.status === "Pending" || r.status === "pending";
+            const timer = timers[r.id];
+            const lessonDate = r.lessonDateTime ? formatLessonDate(r.lessonDateTime) : r.time;
+            const requestDate = r.requestedAt ? new Date(r.requestedAt).toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }) : 'N/A';
             
             return (
               <div key={r.id} style={styles.row}>
@@ -59,8 +144,28 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
                     {r.student} • {r.lesson}
                   </div>
                   <div style={styles.sub}>
-                    Requested time: {r.time} | Status: <b>{r.status}</b>
+                    <div>Lesson scheduled: <b>{lessonDate}</b></div>
+                    <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>Requested: {requestDate}</div>
                   </div>
+                  {isPending && timer && (
+                    <div style={{
+                      fontSize: 14,
+                      marginTop: 8,
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      display: "inline-block",
+                      background: timer.expired ? "#fee2e2" : (timer.hours < 12 ? "#fef3c7" : "#d1fae5"),
+                      color: timer.expired ? "#991b1b" : (timer.hours < 12 ? "#92400e" : "#065f46"),
+                      fontWeight: 700,
+                      border: timer.expired ? "2px solid #dc2626" : (timer.hours < 12 ? "2px solid #f59e0b" : "2px solid #10b981")
+                    }}>
+                      {timer.expired ? (
+                        "⏰ Deadline expired - Auto-cancelled"
+                      ) : (
+                        `⏱️ Time to approve: ${timer.text} (must approve 6h before lesson)`
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div style={styles.actions}>
@@ -74,7 +179,12 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
                       </button>
                       <button 
                         onClick={() => handleApprove(r)} 
-                        style={styles.approveBtn}
+                        style={{
+                          ...styles.approveBtn,
+                          opacity: timer?.expired ? 0.5 : 1,
+                          cursor: timer?.expired ? "not-allowed" : "pointer"
+                        }}
+                        disabled={timer?.expired}
                       >
                         Approve Lesson
                       </button>

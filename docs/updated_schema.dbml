@@ -7,7 +7,7 @@ Table users {
   email nvarchar(100) [unique]
   phone nvarchar(20)
   tutor_rating decimal(2,1)
-  token_balance int [default: 0]
+  token_balance int [default: 50] // First 50 users get 50 free tokens
   profile_image nvarchar(255)
   about_teacher nvarchar(max)
   about_student nvarchar(max)
@@ -15,6 +15,7 @@ Table users {
   is_active_teacher bit [default: 0]
   is_teacher_blocked bit [default: 0]
   is_student_blocked bit [default: 0]
+  is_admin bit [default: 0] // Admin panel access
   city nvarchar(100)
   created_at datetime2 [default: `SYSUTCDATETIME()`]
   last_modified datetime2 [default: `SYSUTCDATETIME()`]
@@ -69,15 +70,19 @@ Table lesson_requests {
   requested_day_of_week tinyint
   available_start time
   available_end time
-  specific_start datetime2
-  specific_end datetime2
+  specific_start datetime2 // Booked lesson start time
+  specific_end datetime2 // Booked lesson end time (always 1 hour duration)
+  lesson_date_time datetime2 // Full datetime of the scheduled lesson
   message nvarchar(max)
   rejection_reason nvarchar(max)
   created_at datetime2 [default: `SYSUTCDATETIME()`]
+  requested_at datetime2 [default: `SYSUTCDATETIME()`] // When request was submitted
+  approval_deadline datetime2 // 6 hours before lesson start (auto-cancel if exceeded)
   expiration_at datetime2
   indexes {
     (tutor_id, status) // include specific_start/specific_end at DB level
     (student_id, status)
+    (lesson_date_time) // For filtering by lesson date
   }
 }
 
@@ -133,6 +138,18 @@ Table notifications {
   indexes { (user_id, seen) }
 }
 
+Table contact_messages {
+  id int [pk, increment]
+  sender_id nvarchar(20)
+  sender_name nvarchar(100)
+  sender_email nvarchar(100)
+  subject nvarchar(255)
+  message nvarchar(max)
+  read bit [default: 0]
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  indexes { (sender_id, created_at) }
+}
+
 Ref: courses_users.user_id > users.id_number
 Ref: courses_users.course_id > courses.course_id
 Ref: availability_slots.user_id > users.id_number
@@ -149,3 +166,20 @@ Ref: ratings.ratee_user_id > users.id_number
 Ref: ratings.course_id > courses.course_id
 Ref: token_ledger.user_id > users.id_number
 Ref: notifications.user_id > users.id_number
+Ref: contact_messages.sender_id > users.id_number
+
+Notes:
+"
+FEATURES IMPLEMENTED:
+1. Lesson Booking: Students book with only start time (1-hour auto-duration)
+2. Time Validation: Lesson time must be within tutor's available time slots
+3. Approval Workflow: Tutors can approve/reject from home page or dedicated page
+4. Approval Deadline: 6 hours before lesson start (auto-cancel if exceeded)
+5. Timer Display: Countdown shows time remaining to approve in color-coded badge
+6. Token System: First 50 users get 50 free tokens
+7. Contact Admin: Students can send messages to admin from Contact Us button
+8. Admin Panel: Admin can manage users, block tutors, cancel lessons, search/filter
+9. Full DateTime Tracking: All requests store full datetime with auto-calculation
+10. Rejection Messages: Teachers provide reason when rejecting requests
+"
+

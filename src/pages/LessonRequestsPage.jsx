@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "../context/useApp";
 import Button from "../components/Button";
 import ConfirmModal from "../components/ConfirmModal";
@@ -20,7 +20,8 @@ const mockRequestsAsStudent = [
     },
     message: "I need help with dynamic programming",
     status: "pending", // pending, approved, rejected
-    requestedAt: "2025-12-20 10:30"
+    requestedAt: "2025-12-20T10:30:00",
+    lessonDateTime: "2025-12-22T19:00:00"
   },
   {
     id: 2,
@@ -36,7 +37,8 @@ const mockRequestsAsStudent = [
     },
     message: "Want to review binary trees",
     status: "approved",
-    requestedAt: "2025-12-19 14:20"
+    requestedAt: "2025-12-19T14:20:00",
+    lessonDateTime: "2025-12-25T18:00:00"
   },
   {
     id: 3,
@@ -52,7 +54,8 @@ const mockRequestsAsStudent = [
     },
     message: "",
     status: "rejected",
-    requestedAt: "2025-12-18 09:15"
+    requestedAt: "2025-12-18T09:15:00",
+    lessonDateTime: "2025-12-23T20:00:00"
   }
 ];
 
@@ -70,7 +73,8 @@ const mockRequestsAsTeacher = [
     },
     message: "I'm struggling with graph algorithms, especially BFS and DFS",
     status: "pending",
-    requestedAt: "2025-12-21 16:45"
+    requestedAt: "2025-12-21T16:45:00",
+    lessonDateTime: "2025-12-23T19:00:00"
   },
   {
     id: 5,
@@ -85,7 +89,8 @@ const mockRequestsAsTeacher = [
     },
     message: "Need help with complex joins and subqueries",
     status: "pending",
-    requestedAt: "2025-12-21 11:20"
+    requestedAt: "2025-12-21T11:20:00",
+    lessonDateTime: "2025-12-24T20:30:00"
   },
   {
     id: 6,
@@ -100,7 +105,8 @@ const mockRequestsAsTeacher = [
     },
     message: "",
     status: "pending",
-    requestedAt: "2025-12-20 15:10"
+    requestedAt: "2025-12-20T15:10:00",
+    lessonDateTime: "2025-12-26T18:30:00"
   }
 ];
 
@@ -114,8 +120,81 @@ export default function LessonRequestsPage() {
   const [rejectionMessage, setRejectionMessage] = useState("");
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedRequestForCancel, setSelectedRequestForCancel] = useState(null);
+  const [timers, setTimers] = useState({});
+
+  // Calculate time remaining until approval deadline (6 hours before lesson)
+  const calculateTimeRemaining = (lessonDateTime) => {
+    const now = new Date();
+    const lessonDate = new Date(lessonDateTime);
+    
+    // Deadline: 6 hours before lesson
+    const deadline = new Date(lessonDate.getTime() - 6 * 60 * 60 * 1000);
+    
+    const diff = deadline.getTime() - now.getTime();
+    
+    if (diff <= 0) {
+      return { expired: true, text: "Expired", hours: 0, minutes: 0 };
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return {
+      expired: false,
+      text: `${hours}h ${minutes}m`,
+      hours,
+      minutes
+    };
+  };
+
+  // Format lesson date for display
+  const formatLessonDate = (lessonDateTime) => {
+    if (!lessonDateTime) return "N/A";
+    const date = new Date(lessonDateTime);
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const isToday = date.toDateString() === now.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+    
+    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    
+    if (isToday) {
+      return `Today ${timeStr}`;
+    } else if (isTomorrow) {
+      return `Tomorrow ${timeStr}`;
+    } else {
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${dateStr} ${timeStr}`;
+    }
+  };
+
+  // Update timers every minute
+  useEffect(() => {
+    const updateTimers = () => {
+      const newTimers = {};
+      [...requestsAsStudent, ...requestsAsTeacher].forEach(r => {
+        if (r.status === "pending" && r.lessonDateTime) {
+          newTimers[r.id] = calculateTimeRemaining(r.lessonDateTime);
+        }
+      });
+      setTimers(newTimers);
+    };
+    
+    updateTimers();
+    const interval = setInterval(updateTimers, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, [requestsAsStudent, requestsAsTeacher]);
 
   const handleApprove = async (requestId) => {
+    const timer = timers[requestId];
+    if (timer?.expired) {
+      addNotification("Cannot approve: approval deadline has passed (must approve 6+ hours before lesson)", "error");
+      return;
+    }
+    
     const result = await approveLessonRequest(requestId);
     if (result.success) {
       setRequestsAsTeacher(prev => 
@@ -226,6 +305,15 @@ export default function LessonRequestsPage() {
           ) : (
             requestsAsStudent.map(req => {
               const statusStyle = getStatusColor(req.status);
+              const timer = timers[req.id];
+              const lessonDate = formatLessonDate(req.lessonDateTime);
+              const requestDate = new Date(req.requestedAt).toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              });
+              
               return (
                 <div key={req.id} style={styles.card}>
                   <div style={styles.cardHeader}>
@@ -247,13 +335,8 @@ export default function LessonRequestsPage() {
 
                   <div style={styles.cardContent}>
                     <div style={styles.infoRow}>
-                      <strong>Requested Time:</strong>
-                      <span>
-                        {req.requestedSlot.day}, {req.requestedSlot.specificStartTime} - {req.requestedSlot.specificEndTime}
-                        <span style={{ fontSize: 13, color: "#94a3b8", marginLeft: 8 }}>
-                          (Available: {req.requestedSlot.startTime} - {req.requestedSlot.endTime})
-                        </span>
-                      </span>
+                      <strong>Lesson Scheduled:</strong>
+                      <span style={{ fontWeight: 600, color: "#0ea5e9" }}>{lessonDate}</span>
                     </div>
                     {req.message && (
                       <div style={styles.infoRow}>
@@ -269,11 +352,30 @@ export default function LessonRequestsPage() {
                     )}
                     <div style={styles.infoRow}>
                       <strong>Requested At:</strong>
-                      <span>{req.requestedAt}</span>
+                      <span style={{ fontSize: 13, color: "#64748b" }}>{requestDate}</span>
                     </div>
+                    
+                    {req.status === "pending" && timer && (
+                      <div style={{
+                        marginTop: 12,
+                        padding: 12,
+                        borderRadius: 8,
+                        background: timer.expired ? "#fee2e2" : (timer.hours < 12 ? "#fef3c7" : "#d1fae5"),
+                        border: `2px solid ${timer.expired ? "#dc2626" : (timer.hours < 12 ? "#f59e0b" : "#10b981")}`,
+                        color: timer.expired ? "#991b1b" : (timer.hours < 12 ? "#92400e" : "#065f46"),
+                        fontWeight: 700,
+                        fontSize: 14
+                      }}>
+                        {timer.expired ? (
+                          "⏰ Approval deadline expired - Request auto-cancelled"
+                        ) : (
+                          `⏱️ Tutor must approve within: ${timer.text} (6h before lesson)`
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {req.status === "pending" && (
+                  {req.status === "pending" && !timer?.expired && (
                     <div style={styles.cardActions}>
                       <button
                         onClick={() => openCancelModal(req)}
@@ -302,6 +404,15 @@ export default function LessonRequestsPage() {
           ) : (
             requestsAsTeacher.map(req => {
               const statusStyle = getStatusColor(req.status);
+              const timer = timers[req.id];
+              const lessonDate = formatLessonDate(req.lessonDateTime);
+              const requestDate = new Date(req.requestedAt).toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              });
+              
               return (
                 <div key={req.id} style={styles.card}>
                   <div style={styles.cardHeader}>
@@ -323,13 +434,8 @@ export default function LessonRequestsPage() {
 
                   <div style={styles.cardContent}>
                     <div style={styles.infoRow}>
-                      <strong>Requested Time:</strong>
-                      <span>
-                        {req.requestedSlot.day}, {req.requestedSlot.specificStartTime} - {req.requestedSlot.specificEndTime}
-                        <span style={{ fontSize: 13, color: "#94a3b8", marginLeft: 8 }}>
-                          (Available: {req.requestedSlot.startTime} - {req.requestedSlot.endTime})
-                        </span>
-                      </span>
+                      <strong>Lesson Scheduled:</strong>
+                      <span style={{ fontWeight: 600, color: "#0ea5e9" }}>{lessonDate}</span>
                     </div>
                     {req.message && (
                       <div style={styles.infoRow}>
@@ -339,11 +445,30 @@ export default function LessonRequestsPage() {
                     )}
                     <div style={styles.infoRow}>
                       <strong>Requested At:</strong>
-                      <span>{req.requestedAt}</span>
+                      <span style={{ fontSize: 13, color: "#64748b" }}>{requestDate}</span>
                     </div>
+                    
+                    {req.status === "pending" && timer && (
+                      <div style={{
+                        marginTop: 12,
+                        padding: 12,
+                        borderRadius: 8,
+                        background: timer.expired ? "#fee2e2" : (timer.hours < 12 ? "#fef3c7" : "#d1fae5"),
+                        border: `2px solid ${timer.expired ? "#dc2626" : (timer.hours < 12 ? "#f59e0b" : "#10b981")}`,
+                        color: timer.expired ? "#991b1b" : (timer.hours < 12 ? "#92400e" : "#065f46"),
+                        fontWeight: 700,
+                        fontSize: 14
+                      }}>
+                        {timer.expired ? (
+                          "⏰ Approval deadline expired - Request auto-cancelled"
+                        ) : (
+                          `⏱️ You must approve within: ${timer.text} (6h before lesson)`
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {req.status === "pending" && (
+                  {req.status === "pending" && !timer?.expired && (
                     <div style={styles.cardActions}>
                       <button
                         onClick={() => openRejectModal(req)}

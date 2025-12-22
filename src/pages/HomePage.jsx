@@ -25,7 +25,16 @@ export default function HomePage() {
       id: 1,
       student: "Itai",
       lesson: "SQL practice",
-      time: "Today 18:00",
+      requestedAt: "2025-12-22T10:30:00", // When the request was submitted
+      lessonDateTime: "2025-12-23T18:00:00", // Full lesson date and time
+      status: "Pending"
+    },
+    {
+      id: 2,
+      student: "Sarah",
+      lesson: "Algorithms",
+      requestedAt: "2025-12-22T09:15:00",
+      lessonDateTime: "2025-12-24T16:00:00",
       status: "Pending"
     }
   ];
