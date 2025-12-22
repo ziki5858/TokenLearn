@@ -1,5 +1,8 @@
 import React, { useState } from "react";
+import { useApp } from "../context/useApp";
 import Button from "../components/Button";
+import ConfirmModal from "../components/ConfirmModal";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // Mock data - will come from backend
 const mockRequestsAsStudent = [
@@ -102,20 +105,23 @@ const mockRequestsAsTeacher = [
 ];
 
 export default function LessonRequestsPage() {
+  const { approveLessonRequest, rejectLessonRequest, cancelLessonRequest, addNotification, loading } = useApp();
   const [activeTab, setActiveTab] = useState("student"); // student or teacher
   const [requestsAsStudent, setRequestsAsStudent] = useState(mockRequestsAsStudent);
   const [requestsAsTeacher, setRequestsAsTeacher] = useState(mockRequestsAsTeacher);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [selectedRequestForRejection, setSelectedRequestForRejection] = useState(null);
   const [rejectionMessage, setRejectionMessage] = useState("");
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [selectedRequestForCancel, setSelectedRequestForCancel] = useState(null);
 
-  const handleApprove = (requestId) => {
-    setRequestsAsTeacher(prev => 
-      prev.map(req => req.id === requestId ? { ...req, status: "approved" } : req)
-    );
-    // Here: send to backend
-    // POST /api/lesson-requests/{requestId}/approve
-    alert("Lesson request approved!");
+  const handleApprove = async (requestId) => {
+    const result = await approveLessonRequest(requestId);
+    if (result.success) {
+      setRequestsAsTeacher(prev => 
+        prev.map(req => req.id === requestId ? { ...req, status: "approved" } : req)
+      );
+    }
   };
 
   const openRejectModal = (request) => {
@@ -124,37 +130,41 @@ export default function LessonRequestsPage() {
     setRejectModalOpen(true);
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!rejectionMessage.trim()) {
-      alert("Please provide a reason for rejection");
+      addNotification("Please provide a reason for rejection", "error");
       return;
     }
 
-    setRequestsAsTeacher(prev => 
-      prev.map(req => 
-        req.id === selectedRequestForRejection.id 
-          ? { ...req, status: "rejected", rejectionReason: rejectionMessage } 
-          : req
-      )
-    );
+    const result = await rejectLessonRequest(selectedRequestForRejection.id, rejectionMessage);
     
-    // Here: send to backend
-    // POST /api/lesson-requests/{requestId}/reject
-    // body: { reason: rejectionMessage }
+    if (result.success) {
+      setRequestsAsTeacher(prev => 
+        prev.map(req => 
+          req.id === selectedRequestForRejection.id 
+            ? { ...req, status: "rejected", rejectionReason: rejectionMessage } 
+            : req
+        )
+      );
+    }
     
-    alert("Lesson request rejected.");
     setRejectModalOpen(false);
     setSelectedRequestForRejection(null);
     setRejectionMessage("");
   };
 
-  const handleCancel = (requestId) => {
-    if (confirm("Are you sure you want to cancel this request?")) {
-      setRequestsAsStudent(prev => prev.filter(req => req.id !== requestId));
-      // Here: send to backend
-      // DELETE /api/lesson-requests/{requestId}
-      alert("Request cancelled.");
+  const openCancelModal = (request) => {
+    setSelectedRequestForCancel(request);
+    setCancelModalOpen(true);
+  };
+
+  const handleCancel = async () => {
+    const result = await cancelLessonRequest(selectedRequestForCancel.id);
+    if (result.success) {
+      setRequestsAsStudent(prev => prev.filter(req => req.id !== selectedRequestForCancel.id));
     }
+    setCancelModalOpen(false);
+    setSelectedRequestForCancel(null);
   };
 
   const getStatusColor = (status) => {
@@ -177,6 +187,7 @@ export default function LessonRequestsPage() {
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: 20 }}>
+      {loading && <LoadingSpinner fullScreen />}
       <h1 style={{ marginTop: 0 }}>Lesson Requests</h1>
       <p style={{ marginTop: 0, color: "#64748b", marginBottom: 20 }}>
         Manage your lesson requests as a student and teacher
@@ -265,8 +276,9 @@ export default function LessonRequestsPage() {
                   {req.status === "pending" && (
                     <div style={styles.cardActions}>
                       <button
-                        onClick={() => handleCancel(req.id)}
+                        onClick={() => openCancelModal(req)}
                         style={styles.cancelBtn}
+                        disabled={loading}
                       >
                         Cancel Request
                       </button>
@@ -336,10 +348,11 @@ export default function LessonRequestsPage() {
                       <button
                         onClick={() => openRejectModal(req)}
                         style={styles.rejectBtn}
+                        disabled={loading}
                       >
                         Reject
                       </button>
-                      <Button onClick={() => handleApprove(req.id)}>
+                      <Button onClick={() => handleApprove(req.id)} disabled={loading}>
                         Approve Lesson
                       </Button>
                     </div>
@@ -376,16 +389,27 @@ export default function LessonRequestsPage() {
               </label>
             </div>
             <div style={styles.modalActions}>
-              <button onClick={() => setRejectModalOpen(false)} style={styles.modalCancelBtn}>
+              <button onClick={() => setRejectModalOpen(false)} style={styles.modalCancelBtn} disabled={loading}>
                 Cancel
               </button>
-              <button onClick={handleReject} style={styles.modalRejectBtn}>
+              <button onClick={handleReject} style={styles.modalRejectBtn} disabled={loading}>
                 Reject Request
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Cancel Request Confirmation Modal */}
+      <ConfirmModal
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={handleCancel}
+        title="Cancel Lesson Request"
+        message={`Are you sure you want to cancel the lesson request with ${selectedRequestForCancel?.tutorName || 'this tutor'}?`}
+        confirmText="Yes, Cancel Request"
+        confirmStyle="danger"
+      />
     </div>
   );
 }

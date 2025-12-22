@@ -1,13 +1,16 @@
 import React, { useState } from "react";
+import { useApp } from "../context/useApp";
 import Button from "./Button";
 
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function BookLessonModal({ tutor, onClose, onBook }) {
+  const { createLessonRequest, addNotification } = useApp();
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [specificStartTime, setSpecificStartTime] = useState("");
   const [specificEndTime, setSpecificEndTime] = useState("");
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Mock availability data - in real app, this would come from the tutor's profile
   const availability = tutor?.availability || [
@@ -18,29 +21,31 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
 
   const selectedSlot = availability.find(slot => slot.id === selectedSlotId);
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!selectedSlot) {
-      alert("Please select a time slot");
+      addNotification("Please select a time slot", "error");
       return;
     }
 
     if (!specificStartTime || !specificEndTime) {
-      alert("Please select specific start and end times for your lesson");
+      addNotification("Please select specific start and end times for your lesson", "error");
       return;
     }
 
     // Validate times are within available range
     if (specificStartTime < selectedSlot.startTime || specificEndTime > selectedSlot.endTime) {
-      alert(`Please select times within the available range: ${selectedSlot.startTime} - ${selectedSlot.endTime}`);
+      addNotification(`Please select times within the available range: ${selectedSlot.startTime} - ${selectedSlot.endTime}`, "error");
       return;
     }
 
     if (specificStartTime >= specificEndTime) {
-      alert("End time must be after start time");
+      addNotification("End time must be after start time", "error");
       return;
     }
+
+    setIsSubmitting(true);
     
-    onBook?.({
+    const requestData = {
       tutorId: tutor.id,
       tutorName: tutor.name,
       slot: {
@@ -49,19 +54,16 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
         specificEndTime
       },
       message
-    });
+    };
     
-    // Here: send to backend
-    // POST /api/lesson-requests
-    // body: { tutorId, slotId, specificStartTime, specificEndTime, message }
-    // The backend will:
-    // 1. Save the request in the database
-    // 2. Set status to "pending"
-    // 3. Notify the tutor (optional: email, push notification)
-    // Response: { requestId, status: "pending", ... }
+    const result = await createLessonRequest(requestData);
     
-    alert(`Lesson request sent to ${tutor.name}!`);
-    onClose();
+    setIsSubmitting(false);
+    
+    if (result.success) {
+      onBook?.(requestData);
+      onClose();
+    }
   };
 
   return (
@@ -198,11 +200,11 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
 
           {/* Action Buttons */}
           <div style={styles.actions}>
-            <button onClick={onClose} style={styles.cancelBtn}>
+            <button onClick={onClose} style={styles.cancelBtn} disabled={isSubmitting}>
               Cancel
             </button>
-            <Button onClick={handleBook}>
-              Send Lesson Request
+            <Button onClick={handleBook} disabled={isSubmitting}>
+              {isSubmitting ? "Sending..." : "Send Lesson Request"}
             </Button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useApp } from "../context/useApp";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import Card from "../components/Card";
@@ -14,27 +15,28 @@ export default function CreateUserPage() {
   const [secretQuestion, setSecretQuestion] = useState("");
   const [secretAnswer, setSecretAnswer] = useState("");
   const navigate = useNavigate();
+  const { addNotification } = useApp();
 
   function handleSubmit(e) {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      addNotification("Passwords do not match", "error");
       return;
     }
 
     if (!email || !password || !secretQuestion || !secretAnswer) {
-      alert("Please fill out all fields");
+      addNotification("Please fill out all fields", "error");
       return;
     }
 
     // No backend yet - mocking signup
-    alert("User created successfully! Redirecting to your personal area to finish setup.");
-    navigate("/me");
+    addNotification("User created successfully! Redirecting to your personal area to finish setup.", "success");
+    setTimeout(() => navigate("/me"), 1500);
   }
 
   function handleGoogleSignup() {
-    alert("Google signup (mock). We will hook up real OAuth later.");
+    addNotification("Google signup (mock). We will hook up real OAuth later.", "info");
   }
 
   function handleBackToLogin() {

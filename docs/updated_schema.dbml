@@ -1,0 +1,151 @@
+Project TokenLearn Updated Schema
+
+Table users {
+  id_number nvarchar(20) [pk]
+  username nvarchar(50) [unique]
+  password nvarchar(100)
+  email nvarchar(100) [unique]
+  phone nvarchar(20)
+  tutor_rating decimal(2,1)
+  token_balance int [default: 0]
+  profile_image nvarchar(255)
+  about_teacher nvarchar(max)
+  about_student nvarchar(max)
+  secret_answer nvarchar(255)
+  is_active_teacher bit [default: 0]
+  is_teacher_blocked bit [default: 0]
+  is_student_blocked bit [default: 0]
+  city nvarchar(100)
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  last_modified datetime2 [default: `SYSUTCDATETIME()`]
+  modified_by nvarchar(50)
+}
+
+Table courses {
+  course_id nvarchar(20) [pk]
+  title nvarchar(200)
+  description nvarchar(max)
+  institution nvarchar(100)
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  last_modified datetime2 [default: `SYSUTCDATETIME()`]
+  modified_by nvarchar(50)
+}
+
+Table courses_users {
+  course_id nvarchar(20)
+  user_id nvarchar(20)
+  role nvarchar(20) // teacher | student | assistant | owner
+  is_blocked bit [default: 0]
+  joined_at datetime2 [default: `SYSUTCDATETIME()`]
+  last_modified datetime2 [default: `SYSUTCDATETIME()`]
+  modified_by nvarchar(50)
+  indexes {
+    (course_id, user_id) [pk]
+    course_id
+    user_id
+  }
+}
+
+Table availability_slots {
+  id int [pk, increment]
+  user_id nvarchar(20)
+  role_type nvarchar(10) // teach | learn
+  day_of_week tinyint // 0=Sunday ... 6=Saturday
+  start_time time
+  end_time time
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  last_modified datetime2 [default: `SYSUTCDATETIME()`]
+  indexes {
+    (user_id, role_type, day_of_week)
+  }
+}
+
+Table lesson_requests {
+  id int [pk, increment]
+  student_id nvarchar(20)
+  tutor_id nvarchar(20)
+  course_id nvarchar(20)
+  status nvarchar(12) // pending | approved | rejected | cancelled
+  requested_day_of_week tinyint
+  available_start time
+  available_end time
+  specific_start datetime2
+  specific_end datetime2
+  message nvarchar(max)
+  rejection_reason nvarchar(max)
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  expiration_at datetime2
+  indexes {
+    (tutor_id, status) // include specific_start/specific_end at DB level
+    (student_id, status)
+  }
+}
+
+Table lessons {
+  id int [pk, increment]
+  request_id int
+  student_id nvarchar(20)
+  tutor_id nvarchar(20)
+  course_id nvarchar(20)
+  start_time datetime2
+  end_time datetime2
+  status nvarchar(12) // scheduled | completed | cancelled
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  indexes {
+    (tutor_id, start_time, end_time)
+    (student_id, start_time, end_time)
+  }
+}
+
+Table ratings {
+  id int [pk, increment]
+  lesson_id int
+  student_id nvarchar(20)
+  ratee_user_id nvarchar(20) // usually tutor
+  course_id nvarchar(20)
+  score decimal(2,1)
+  comment nvarchar(max)
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  indexes {
+    ratee_user_id
+  }
+}
+
+Table token_ledger {
+  id int [pk, increment]
+  user_id nvarchar(20)
+  delta int // positive/negative change
+  reason nvarchar(12) // lesson | refund | admin
+  ref_id int // related request/lesson id
+  balance_after int
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  indexes { (user_id, created_at) }
+}
+
+Table notifications {
+  id int [pk, increment]
+  user_id nvarchar(20)
+  type nvarchar(8) // success | error | info
+  title nvarchar(120)
+  body nvarchar(max)
+  seen bit [default: 0]
+  created_at datetime2 [default: `SYSUTCDATETIME()`]
+  indexes { (user_id, seen) }
+}
+
+Ref: courses_users.user_id > users.id_number
+Ref: courses_users.course_id > courses.course_id
+Ref: availability_slots.user_id > users.id_number
+Ref: lesson_requests.student_id > users.id_number
+Ref: lesson_requests.tutor_id > users.id_number
+Ref: lesson_requests.course_id > courses.course_id
+Ref: lessons.request_id > lesson_requests.id
+Ref: lessons.student_id > users.id_number
+Ref: lessons.tutor_id > users.id_number
+Ref: lessons.course_id > courses.course_id
+Ref: ratings.lesson_id > lessons.id
+Ref: ratings.student_id > users.id_number
+Ref: ratings.ratee_user_id > users.id_number
+Ref: ratings.course_id > courses.course_id
+Ref: token_ledger.user_id > users.id_number
+Ref: notifications.user_id > users.id_number

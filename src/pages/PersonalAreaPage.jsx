@@ -1,6 +1,8 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useApp } from "../context/useApp";
 import Input from "../components/Input";
 import Button from "../components/Button";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const cardStyle = {
   background: "linear-gradient(135deg, #ffffff 0%, #f4f7ff 100%)",
@@ -15,13 +17,24 @@ const cardStyle = {
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function PersonalAreaPage() {
-  const tutorRating = 4.8; // later from server
-
+  const { user, updateUserProfile, loading, addNotification } = useApp();
+  
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const objectUrlRef = useRef(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Load user data on mount
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+      setPhone(user.phone || "");
+      setPhotoUrl(user.photoUrl || "");
+    }
+  }, [user]);
 
   // Courses
   const [coursesAsTeacher, setCoursesAsTeacher] = useState([
@@ -129,17 +142,99 @@ export default function PersonalAreaPage() {
   }
 
   function handleSave() {
+    // Validation
     if (!generalComplete) {
-      alert("Please complete the general details before saving.");
+      addNotification("Please complete the general details before saving.", "error");
       return;
     }
 
-    alert("Saved (mock) - wire to backend later");
+    // Validate courses
+    const validCoursesTeacher = coursesAsTeacher.filter(c => c.name.trim());
+    const validCoursesStudent = coursesAsStudent.filter(c => c.name.trim());
+
+    // Validate availability
+    const validAvailabilityTeacher = availabilityAsTeacher.filter(a => 
+      a.day && a.startTime && a.endTime
+    );
+    const validAvailabilityStudent = availabilityAsStudent.filter(a => 
+      a.day && a.startTime && a.endTime
+    );
+
+    // Check for time conflicts in teacher availability
+    const teacherConflicts = checkTimeConflicts(validAvailabilityTeacher);
+    if (teacherConflicts.length > 0) {
+      addNotification("You have overlapping time slots in teacher availability!", "error");
+      return;
+    }
+
+    // Check for time conflicts in student availability
+    const studentConflicts = checkTimeConflicts(validAvailabilityStudent);
+    if (studentConflicts.length > 0) {
+      addNotification("You have overlapping time slots in student availability!", "error");
+      return;
+    }
+
+    // Prepare data for save
+    const profileData = {
+      firstName,
+      lastName,
+      phone,
+      photoUrl,
+      coursesAsTeacher: validCoursesTeacher,
+      coursesAsStudent: validCoursesStudent,
+      availabilityAsTeacher: validAvailabilityTeacher,
+      availabilityAsStudent: validAvailabilityStudent,
+      aboutMeAsTeacher,
+      aboutMeAsStudent
+    };
+
+    // Save via context
+    updateUserProfile(profileData);
+    setHasChanges(false);
+  }
+
+  function checkTimeConflicts(availability) {
+    const conflicts = [];
+    for (let i = 0; i < availability.length; i++) {
+      for (let j = i + 1; j < availability.length; j++) {
+        const a = availability[i];
+        const b = availability[j];
+        
+        if (a.day === b.day) {
+          // Check if times overlap
+          if (
+            (a.startTime >= b.startTime && a.startTime < b.endTime) ||
+            (a.endTime > b.startTime && a.endTime <= b.endTime) ||
+            (a.startTime <= b.startTime && a.endTime >= b.endTime)
+          ) {
+            conflicts.push({ a, b });
+          }
+        }
+      }
+    }
+    return conflicts;
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: 16, display: "grid", gap: 16 }}>
-      <h1 style={{ marginTop: 0 }}>Personal Area</h1>
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: 16, display: "grid", gap: 16, position: "relative" }}>
+      {loading && <LoadingSpinner fullScreen />}
+      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ marginTop: 0 }}>Personal Area</h1>
+        {hasChanges && (
+          <div style={{
+            padding: "6px 12px",
+            background: "#fef3c7",
+            border: "1px solid #fde68a",
+            borderRadius: 8,
+            fontSize: 13,
+            color: "#92400e",
+            fontWeight: 600
+          }}>
+            Unsaved changes
+          </div>
+        )}
+      </div>
 
       <section style={{
         ...cardStyle,
@@ -150,7 +245,7 @@ export default function PersonalAreaPage() {
       }}>
         <div>
           <div style={{ fontSize: 14, color: "#475569" }}>Your tutor rating</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{tutorRating.toFixed(1)}</div>
+          <div style={{ fontSize: 28, fontWeight: 800 }}>{user.tutorRating.toFixed(1)}</div>
         </div>
         <div style={{
           padding: "10px 14px",
@@ -214,9 +309,9 @@ export default function PersonalAreaPage() {
           </div>
         </div>
 
-        <Input label="First Name" value={firstName} onChange={setFirstName} placeholder="Enter your first name" />
-        <Input label="Last Name" value={lastName} onChange={setLastName} placeholder="Enter your last name" />
-        <Input label="Phone Number" value={phone} onChange={setPhone} placeholder="e.g., +1 555 123 4567" />
+        <Input label="First Name" value={firstName} onChange={(v) => { setFirstName(v); setHasChanges(true); }} placeholder="Enter your first name" />
+        <Input label="Last Name" value={lastName} onChange={(v) => { setLastName(v); setHasChanges(true); }} placeholder="Enter your last name" />
+        <Input label="Phone Number" value={phone} onChange={(v) => { setPhone(v); setHasChanges(true); }} placeholder="e.g., +1 555 123 4567" />
       </section>
 
       <section style={cardStyle}>

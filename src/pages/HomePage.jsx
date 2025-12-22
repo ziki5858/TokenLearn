@@ -1,12 +1,12 @@
 import React from "react";
+import { useApp } from "../context/useApp";
 import HeaderTopBar from "../components/HeaderTopBar";
 import RecommendedTutors from "../components/RecommendedTutors";
 import PendingRequests from "../components/PendingRequests";
 import FooterStoryAndRules from "../components/FooterStoryAndRules";
 
 export default function HomePage() {
-  const tokenBalance = 12;
-  const tutorRating = 4.8; // later from server / context
+  const { user } = useApp();
 
   const tutors = [
     { id: 1, name: "Daniel Cohen", rating: 4.9, course: "Algorithms" },
@@ -65,8 +65,8 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: "100vh" }}>
       <HeaderTopBar
-        tokenBalance={tokenBalance}
-        tutorRating={tutorRating}
+        tokenBalance={user.tokenBalance}
+        tutorRating={user.tutorRating}
       />
 
       <main style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>

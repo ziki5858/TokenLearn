@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useApp } from "../context/useApp";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import Card from "../components/Card";
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { addNotification } = useApp();
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -20,7 +22,7 @@ export default function LoginPage() {
   }
 
   function handleGoogleLogin() {
-    alert("Google login (mock). We will hook up real OAuth later.");
+    addNotification("Google login (mock). We will hook up real OAuth later.", "info");
   }
 
   function handleForgotPassword() {
