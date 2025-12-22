@@ -8,7 +8,6 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
   const { createLessonRequest, addNotification } = useApp();
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [specificStartTime, setSpecificStartTime] = useState("");
-  const [specificEndTime, setSpecificEndTime] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,19 +26,46 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
       return;
     }
 
-    if (!specificStartTime || !specificEndTime) {
-      addNotification("Please select specific start and end times for your lesson", "error");
+    if (!specificStartTime) {
+      addNotification("Please select a start time for your lesson", "error");
       return;
     }
 
-    // Validate times are within available range
-    if (specificStartTime < selectedSlot.startTime || specificEndTime > selectedSlot.endTime) {
-      addNotification(`Please select times within the available range: ${selectedSlot.startTime} - ${selectedSlot.endTime}`, "error");
+    // Convert times to minutes for accurate comparison
+    const timeToMinutes = (timeStr) => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const startMinutes = timeToMinutes(specificStartTime);
+    const slotStartMinutes = timeToMinutes(selectedSlot.startTime);
+    const slotEndMinutes = timeToMinutes(selectedSlot.endTime);
+
+    // Calculate end time (1 hour = 60 minutes after start time)
+    const endMinutes = startMinutes + 60;
+    const endHours = Math.floor(endMinutes / 60);
+    const endMins = endMinutes % 60;
+    const specificEndTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+
+    console.log('Validation:', {
+      specificStartTime,
+      specificEndTime,
+      slotRange: `${selectedSlot.startTime} - ${selectedSlot.endTime}`,
+      startMinutes,
+      slotStartMinutes,
+      endMinutes,
+      slotEndMinutes
+    });
+
+    // Validate start time is within available range
+    if (startMinutes < slotStartMinutes) {
+      addNotification(`Start time must be at or after ${selectedSlot.startTime}`, "error");
       return;
     }
 
-    if (specificStartTime >= specificEndTime) {
-      addNotification("End time must be after start time", "error");
+    // Validate end time (1 hour later) is within available range
+    if (endMinutes > slotEndMinutes) {
+      addNotification(`The lesson would end at ${specificEndTime}, which is after the available time (${selectedSlot.endTime}). Please select an earlier start time.`, "error");
       return;
     }
 
@@ -116,7 +142,6 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
                     onChange={() => {
                       setSelectedSlotId(slot.id);
                       setSpecificStartTime("");
-                      setSpecificEndTime("");
                     }}
                     style={{ marginRight: 10 }}
                   />
@@ -135,7 +160,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
           {selectedSlot && (
             <div style={styles.section}>
               <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>
-                Choose Your Specific Lesson Time
+                Choose Your Lesson Start Time
               </h3>
               <div style={{
                 padding: 16,
@@ -145,41 +170,91 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
                 marginBottom: 12
               }}>
                 <div style={{ fontSize: 14, color: "#0c4a6e", marginBottom: 8 }}>
-                  ℹ️ Select a specific time within the available range: {selectedSlot.startTime} - {selectedSlot.endTime}
+                  ℹ️ All lessons are 1 hour. Select a start time within the available range: {selectedSlot.startTime} - {(() => {
+                    // Calculate latest possible start time (1 hour before end time)
+                    const [endHours, endMinutes] = selectedSlot.endTime.split(':').map(Number);
+                    const endTotalMinutes = endHours * 60 + endMinutes;
+                    const latestStartMinutes = endTotalMinutes - 60;
+                    const latestHours = Math.floor(latestStartMinutes / 60);
+                    const latestMins = latestStartMinutes % 60;
+                    return `${latestHours.toString().padStart(2, '0')}:${latestMins.toString().padStart(2, '0')}`;
+                  })()}
                 </div>
               </div>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12
-              }}>
-                <label style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    Lesson Start Time *
-                  </div>
-                  <input
-                    type="time"
-                    value={specificStartTime}
-                    onChange={e => setSpecificStartTime(e.target.value)}
-                    min={selectedSlot.startTime}
-                    max={selectedSlot.endTime}
-                    style={styles.timeInput}
-                  />
-                </label>
-                <label style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    Lesson End Time *
-                  </div>
-                  <input
-                    type="time"
-                    value={specificEndTime}
-                    onChange={e => setSpecificEndTime(e.target.value)}
-                    min={selectedSlot.startTime}
-                    max={selectedSlot.endTime}
-                    style={styles.timeInput}
-                  />
-                </label>
-              </div>
+              <label style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  Lesson Start Time *
+                </div>
+                <input
+                  type="time"
+                  value={specificStartTime}
+                  onChange={e => {
+                    const newTime = e.target.value;
+                    console.log('Selected time:', newTime, 'Slot range:', selectedSlot.startTime, '-', selectedSlot.endTime);
+                    setSpecificStartTime(newTime);
+                  }}
+                  min={selectedSlot.startTime}
+                  max={(() => {
+                    // Calculate max time: must allow 1 hour lesson to end by endTime
+                    const [endHours, endMinutes] = selectedSlot.endTime.split(':').map(Number);
+                    const endTotalMinutes = endHours * 60 + endMinutes;
+                    const maxStartMinutes = endTotalMinutes - 60; // 60 minutes before end
+                    const maxHours = Math.floor(maxStartMinutes / 60);
+                    const maxMins = maxStartMinutes % 60;
+                    const result = `${maxHours.toString().padStart(2, '0')}:${maxMins.toString().padStart(2, '0')}`;
+                    console.log('Max start time calculated:', result);
+                    return result;
+                  })()}
+                  style={styles.timeInput}
+                />
+                {specificStartTime && (() => {
+                  const [hours, minutes] = specificStartTime.split(':').map(Number);
+                  const startMinutes = hours * 60 + minutes;
+                  const endMinutes = startMinutes + 60;
+                  const endHours = Math.floor(endMinutes / 60);
+                  const endMins = endMinutes % 60;
+                  const endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+                  
+                  // Check if valid
+                  const [slotStartHours, slotStartMinutes] = selectedSlot.startTime.split(':').map(Number);
+                  const slotStartTotalMinutes = slotStartHours * 60 + slotStartMinutes;
+                  const [slotEndHours, slotEndMinutes] = selectedSlot.endTime.split(':').map(Number);
+                  const slotEndTotalMinutes = slotEndHours * 60 + slotEndMinutes;
+                  
+                  const isStartValid = startMinutes >= slotStartTotalMinutes;
+                  const isEndValid = endMinutes <= slotEndTotalMinutes;
+                  const isValid = isStartValid && isEndValid;
+                  
+                  return (
+                    <div style={{ 
+                      marginTop: 8,
+                      padding: 12,
+                      borderRadius: 8,
+                      background: isValid ? "#dcfce7" : "#fee2e2",
+                      border: `2px solid ${isValid ? "#16a34a" : "#dc2626"}`,
+                    }}>
+                      <div style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: isValid ? "#15803d" : "#dc2626",
+                        marginBottom: 4
+                      }}>
+                        {isValid ? "✅ Valid Time" : "❌ Invalid Time"}
+                      </div>
+                      <div style={{ 
+                        fontSize: 13, 
+                        color: isValid ? "#166534" : "#991b1b",
+                      }}>
+                        {isValid 
+                          ? `Lesson will run from ${specificStartTime} to ${endTime}` 
+                          : !isStartValid
+                            ? `⚠️ Start time ${specificStartTime} is before available range (starts at ${selectedSlot.startTime})`
+                            : `⚠️ Lesson would end at ${endTime}, which is after available time (ends at ${selectedSlot.endTime})`}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </label>
             </div>
           )}
 

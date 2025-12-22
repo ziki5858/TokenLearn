@@ -10,7 +10,8 @@ export function AppProvider({ children }) {
     phone: "+1234567890",
     photoUrl: "",
     tokenBalance: 12,
-    tutorRating: 4.8
+    tutorRating: 4.8,
+    isAdmin: true // Set to true for admin users
   });
 
   const [notifications, setNotifications] = useState([]);
@@ -101,6 +102,34 @@ export function AppProvider({ children }) {
     });
   };
 
+  // Admin operations
+  const contactAdmin = async (message, subject) => {
+    return apiCall(async () => {
+      // Here: POST /api/admin/contact
+      console.log('Contacting admin:', { message, subject });
+      addNotification('Your message has been sent to the admin!', 'success');
+      return { sent: true };
+    });
+  };
+
+  const cancelLesson = async (lessonId) => {
+    return apiCall(async () => {
+      // Here: DELETE /api/lessons/{lessonId}
+      console.log('Admin cancelling lesson:', lessonId);
+      addNotification('Lesson cancelled successfully', 'success');
+      return { lessonId };
+    });
+  };
+
+  const blockTutor = async (tutorId) => {
+    return apiCall(async () => {
+      // Here: POST /api/admin/tutors/{tutorId}/block
+      console.log('Admin blocking tutor:', tutorId);
+      addNotification('Tutor blocked successfully', 'success');
+      return { tutorId, blocked: true };
+    });
+  };
+
   const value = {
     user,
     setUser,
@@ -112,7 +141,10 @@ export function AppProvider({ children }) {
     createLessonRequest,
     approveLessonRequest,
     rejectLessonRequest,
-    cancelLessonRequest
+    cancelLessonRequest,
+    contactAdmin,
+    cancelLesson,
+    blockTutor
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

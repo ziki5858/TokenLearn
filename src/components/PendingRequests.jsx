@@ -1,49 +1,93 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useApp } from "../context/useApp";
 
-export default function PendingRequests({ requests }) {
+export default function PendingRequests({ requests, onApprove, onReject }) {
   const navigate = useNavigate();
+  const { addNotification } = useApp();
 
   const handleViewRequests = () => {
     navigate("/lesson-requests");
   };
 
+  const handleApprove = (request) => {
+    if (onApprove) {
+      onApprove(request.id);
+    } else {
+      // Navigate to dedicated page if no handler provided
+      navigate("/lesson-requests");
+    }
+  };
+
+  const handleReject = (request) => {
+    if (onReject) {
+      onReject(request.id);
+    } else {
+      // Navigate to dedicated page if no handler provided
+      navigate("/lesson-requests");
+    }
+  };
+
+  // Filter only pending requests
+  const activeRequests = requests.filter(r => {
+    const isPending = r.status === "Pending" || r.status === "pending";
+    return isPending;
+  });
+
   return (
     <section style={styles.section}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>Lesson Requests Awaiting Approval</h2>
-        {requests.length > 0 && (
+        {activeRequests.length > 0 && (
           <button onClick={handleViewRequests} style={styles.viewAllBtn}>
             View All Requests →
           </button>
         )}
       </div>
 
-      {requests.length === 0 ? (
+      {activeRequests.length === 0 ? (
         <div style={styles.empty}>No pending requests</div>
       ) : (
         <div style={styles.list}>
-          {requests.map(r => (
-            <div key={r.id} style={styles.row}>
-              <div>
-                <div style={styles.title}>
-                  {r.student} • {r.lesson}
+          {activeRequests.map(r => {
+            const isPending = r.status === "Pending" || r.status === "pending";
+            
+            return (
+              <div key={r.id} style={styles.row}>
+                <div style={{ flex: 1 }}>
+                  <div style={styles.title}>
+                    {r.student} • {r.lesson}
+                  </div>
+                  <div style={styles.sub}>
+                    Requested time: {r.time} | Status: <b>{r.status}</b>
+                  </div>
                 </div>
-                <div style={styles.sub}>
-                  Requested time: {r.time} | Status: <b>{r.status}</b>
-                </div>
-              </div>
 
-              <div style={styles.actions}>
-                <button onClick={handleViewRequests} style={styles.rejectBtn}>
-                  Reject
-                </button>
-                <button onClick={handleViewRequests} style={styles.approveBtn}>
-                  Approve Lesson
-                </button>
+                <div style={styles.actions}>
+                  {isPending ? (
+                    <>
+                      <button 
+                        onClick={() => handleReject(r)} 
+                        style={styles.rejectBtn}
+                      >
+                        Reject
+                      </button>
+                      <button 
+                        onClick={() => handleApprove(r)} 
+                        style={styles.approveBtn}
+                      >
+                        Approve Lesson
+                      </button>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 14, color: "#64748b" }}>
+                      {r.status}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>

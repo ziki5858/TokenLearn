@@ -31,8 +31,18 @@ export default function CreateUserPage() {
     }
 
     // No backend yet - mocking signup
-    addNotification("User created successfully! Redirecting to your personal area to finish setup.", "success");
-    setTimeout(() => navigate("/me"), 1500);
+    // Check if user is among first 50 (mock logic - in real app, check from backend)
+    const currentUserCount = localStorage.getItem('userCount') || 0;
+    const newUserCount = parseInt(currentUserCount) + 1;
+    
+    if (newUserCount <= 50) {
+      localStorage.setItem('userCount', newUserCount.toString());
+      addNotification(`User created successfully! You're user #${newUserCount} and received 50 free tokens! 🎉 Redirecting to your personal area to finish setup.`, "success");
+    } else {
+      addNotification("User created successfully! Redirecting to your personal area to finish setup.", "success");
+    }
+    
+    setTimeout(() => navigate("/me"), 2500);
   }
 
   function handleGoogleSignup() {

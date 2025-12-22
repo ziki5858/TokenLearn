@@ -10,6 +10,7 @@ import PersonalAreaPage from './pages/PersonalAreaPage';
 import RatingPage from './pages/RatingPage';
 import FindTutorPage from './pages/FindTutorPage';
 import LessonRequestsPage from './pages/LessonRequestsPage';
+import AdminPage from './pages/AdminPage';
 import AppLayout from './layouts/AppLayout';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
           <Route path="/lesson/:id" element={<LessonPage />} />
           <Route path="/me" element={<PersonalAreaPage />} />
           <Route path="/rating" element={<RatingPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
