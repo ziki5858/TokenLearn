@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import BookLessonModal from "../components/BookLessonModal";
 
 const sampleTutors = [
   { id: 1, name: "Daniel Cohen", courseNumber: "20431", rating: 4.9, lessons: 42 },
@@ -13,6 +14,12 @@ export default function FindTutorPage() {
   const [minRating, setMinRating] = useState("1");
   const [maxRating, setMaxRating] = useState("5");
   const [minLessons, setMinLessons] = useState("0");
+  const [selectedTutor, setSelectedTutor] = useState(null);
+
+  const handleBook = (bookingData) => {
+    console.log("Booking data:", bookingData);
+    // Here you would typically send to backend
+  };
 
   const filteredTutors = useMemo(() => {
     return sampleTutors.filter(t => {
@@ -24,11 +31,12 @@ export default function FindTutorPage() {
   }, [courseNumber, minRating, maxRating, minLessons]);
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: 20 }}>
-      <h1 style={{ marginTop: 0 }}>Find Tutor</h1>
-      <p style={{ marginTop: 0, color: "#475569" }}>
-        Filter by course number, rating range (1-5), or minimum lessons taught.
-      </p>
+    <>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: 20 }}>
+        <h1 style={{ marginTop: 0 }}>Find Tutor</h1>
+        <p style={{ marginTop: 0, color: "#475569" }}>
+          Filter by course number, rating range (1-5), or minimum lessons taught.
+        </p>
 
       <div
         style={{
@@ -116,7 +124,12 @@ export default function FindTutorPage() {
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button style={primaryBtn}>Schedule Lesson</button>
+              <button 
+                style={primaryBtn}
+                onClick={() => setSelectedTutor(t)}
+              >
+                Schedule Lesson
+              </button>
               <button style={ghostBtn}>View Profile</button>
             </div>
           </div>
@@ -136,6 +149,15 @@ export default function FindTutorPage() {
         )}
       </div>
     </div>
+
+    {selectedTutor && (
+      <BookLessonModal
+        tutor={selectedTutor}
+        onClose={() => setSelectedTutor(null)}
+        onBook={handleBook}
+      />
+    )}
+    </>
   );
 }
 

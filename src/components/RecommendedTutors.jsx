@@ -1,24 +1,48 @@
-import React from "react";
+import React, { useState } from "react";
+import BookLessonModal from "./BookLessonModal";
 
 export default function RecommendedTutors({ tutors }) {
-  return (
-    <section style={styles.section}>
-      <h2>Recommended Tutors for You</h2>
+  const [selectedTutor, setSelectedTutor] = useState(null);
 
-      {tutors.length === 0 ? (
-        <div style={styles.empty}>No recommendations right now</div>
-      ) : (
-        <div style={styles.grid}>
-          {tutors.map(t => (
-            <div key={t.id} style={styles.card}>
-              <div style={styles.name}>{t.name}</div>
-              <div>Rating: <b>{t.rating}</b></div>
-              {t.course && <div style={styles.course}>{t.course}</div>}
-            </div>
-          ))}
-        </div>
+  const handleBook = (bookingData) => {
+    console.log("Booking data:", bookingData);
+    // Here you would typically send to backend
+  };
+
+  return (
+    <>
+      <section style={styles.section}>
+        <h2>Recommended Tutors for You</h2>
+
+        {tutors.length === 0 ? (
+          <div style={styles.empty}>No recommendations right now</div>
+        ) : (
+          <div style={styles.grid}>
+            {tutors.map(t => (
+              <div key={t.id} style={styles.card}>
+                <div style={styles.name}>{t.name}</div>
+                <div>Rating: <b>{t.rating}</b></div>
+                {t.course && <div style={styles.course}>{t.course}</div>}
+                <button
+                  onClick={() => setSelectedTutor(t)}
+                  style={styles.bookBtn}
+                >
+                  Book Lesson
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {selectedTutor && (
+        <BookLessonModal
+          tutor={selectedTutor}
+          onClose={() => setSelectedTutor(null)}
+          onBook={handleBook}
+        />
       )}
-    </section>
+    </>
   );
 }
 
@@ -52,5 +76,16 @@ const styles = {
     gap: 6
   },
   name: { fontWeight: 700 },
-  course: { fontSize: 12, color: "#475569" }
+  course: { fontSize: 12, color: "#475569" },
+  bookBtn: {
+    marginTop: 4,
+    padding: "8px 12px",
+    borderRadius: 8,
+    border: "1px solid #0ea5e9",
+    background: "linear-gradient(135deg, #22d3ee, #0ea5e9)",
+    color: "#0b1021",
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: 13
+  }
 };
