@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import BookLessonModal from "../components/BookLessonModal";
+import ViewProfileModal from "../components/ViewProfileModal";
 
 const sampleTutors = [
   { id: 1, name: "Daniel Cohen", courseNumber: "20431", rating: 4.9, lessons: 42 },
@@ -12,9 +13,9 @@ const sampleTutors = [
 export default function FindTutorPage() {
   const [courseNumber, setCourseNumber] = useState("");
   const [minRating, setMinRating] = useState("1");
-  const [maxRating, setMaxRating] = useState("5");
   const [minLessons, setMinLessons] = useState("0");
-  const [selectedTutor, setSelectedTutor] = useState(null);
+  const [selectedTutorForBooking, setSelectedTutorForBooking] = useState(null);
+  const [selectedTutorForProfile, setSelectedTutorForProfile] = useState(null);
 
   const handleBook = (bookingData) => {
     console.log("Booking data:", bookingData);
@@ -24,18 +25,18 @@ export default function FindTutorPage() {
   const filteredTutors = useMemo(() => {
     return sampleTutors.filter(t => {
       const byCourse = courseNumber.trim() === "" || t.courseNumber.includes(courseNumber.trim());
-      const byRating = t.rating >= Number(minRating || 1) && t.rating <= Number(maxRating || 5);
+      const byRating = t.rating >= Number(minRating || 1);
       const byLessons = t.lessons >= Number(minLessons || 0);
       return byCourse && byRating && byLessons;
     });
-  }, [courseNumber, minRating, maxRating, minLessons]);
+  }, [courseNumber, minRating, minLessons]);
 
   return (
     <>
       <div style={{ maxWidth: 960, margin: "0 auto", padding: 20 }}>
         <h1 style={{ marginTop: 0 }}>Find Tutor</h1>
         <p style={{ marginTop: 0, color: "#475569" }}>
-          Filter by course number, rating range (1-5), or minimum lessons taught.
+          Filter by course number, minimum rating, or minimum lessons taught.
         </p>
 
       <div
@@ -70,19 +71,6 @@ export default function FindTutorPage() {
             step="0.1"
             value={minRating}
             onChange={e => setMinRating(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-
-        <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontWeight: 700 }}>Max Rating (1-5)</label>
-          <input
-            type="number"
-            min="1"
-            max="5"
-            step="0.1"
-            value={maxRating}
-            onChange={e => setMaxRating(e.target.value)}
             style={inputStyle}
           />
         </div>
@@ -126,11 +114,16 @@ export default function FindTutorPage() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button 
                 style={primaryBtn}
-                onClick={() => setSelectedTutor(t)}
+                onClick={() => setSelectedTutorForBooking(t)}
               >
                 Schedule Lesson
               </button>
-              <button style={ghostBtn}>View Profile</button>
+              <button 
+                style={ghostBtn}
+                onClick={() => setSelectedTutorForProfile(t)}
+              >
+                View Profile
+              </button>
             </div>
           </div>
         ))}
@@ -150,11 +143,19 @@ export default function FindTutorPage() {
       </div>
     </div>
 
-    {selectedTutor && (
+    {selectedTutorForBooking && (
       <BookLessonModal
-        tutor={selectedTutor}
-        onClose={() => setSelectedTutor(null)}
+        tutor={selectedTutorForBooking}
+        onClose={() => setSelectedTutorForBooking(null)}
         onBook={handleBook}
+      />
+    )}
+
+    {selectedTutorForProfile && (
+      <ViewProfileModal
+        tutor={selectedTutorForProfile}
+        onClose={() => setSelectedTutorForProfile(null)}
+        onBookLesson={() => setSelectedTutorForBooking(selectedTutorForProfile)}
       />
     )}
     </>

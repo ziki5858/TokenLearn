@@ -1,9 +1,23 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function PendingRequests({ requests }) {
+  const navigate = useNavigate();
+
+  const handleViewRequests = () => {
+    navigate("/lesson-requests");
+  };
+
   return (
     <section style={styles.section}>
-      <h2>Lesson Requests Awaiting Approval</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h2 style={{ margin: 0 }}>Lesson Requests Awaiting Approval</h2>
+        {requests.length > 0 && (
+          <button onClick={handleViewRequests} style={styles.viewAllBtn}>
+            View All Requests →
+          </button>
+        )}
+      </div>
 
       {requests.length === 0 ? (
         <div style={styles.empty}>No pending requests</div>
@@ -16,13 +30,17 @@ export default function PendingRequests({ requests }) {
                   {r.student} • {r.lesson}
                 </div>
                 <div style={styles.sub}>
-                  Suggested time: {r.time} | Status: <b>{r.status}</b>
+                  Requested time: {r.time} | Status: <b>{r.status}</b>
                 </div>
               </div>
 
               <div style={styles.actions}>
-                <button style={styles.actionBtn} disabled>Approve</button>
-                <button style={styles.actionBtn} disabled>Decline</button>
+                <button onClick={handleViewRequests} style={styles.rejectBtn}>
+                  Reject
+                </button>
+                <button onClick={handleViewRequests} style={styles.approveBtn}>
+                  Approve Lesson
+                </button>
               </div>
             </div>
           ))}
@@ -63,13 +81,34 @@ const styles = {
   title: { fontWeight: 700 },
   sub: { fontSize: 13, color: "#475569" },
   actions: { display: "flex", gap: 8 },
-  actionBtn: {
-    padding: "8px 12px",
+  viewAllBtn: {
+    padding: "8px 16px",
+    borderRadius: 10,
+    border: "1px solid #0ea5e9",
+    background: "white",
+    color: "#0ea5e9",
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: 14
+  },
+  rejectBtn: {
+    padding: "10px 20px",
     borderRadius: 10,
     border: "1px solid #e2e8f0",
-    background: "linear-gradient(135deg, #ffffff, #f8fafc)",
-    color: "#0f172a",
-    fontWeight: 600,
-    cursor: "not-allowed"
+    background: "white",
+    color: "#64748b",
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: 14
+  },
+  approveBtn: {
+    padding: "10px 20px",
+    borderRadius: 10,
+    border: "1px solid #0ea5e9",
+    background: "linear-gradient(135deg, #22d3ee, #0ea5e9)",
+    color: "#0b1021",
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: 14
   }
 };

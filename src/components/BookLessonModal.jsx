@@ -4,7 +4,9 @@ import Button from "./Button";
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function BookLessonModal({ tutor, onClose, onBook }) {
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlotId, setSelectedSlotId] = useState(null);
+  const [specificStartTime, setSpecificStartTime] = useState("");
+  const [specificEndTime, setSpecificEndTime] = useState("");
   const [message, setMessage] = useState("");
 
   // Mock availability data - in real app, this would come from the tutor's profile
@@ -14,18 +16,49 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
     { id: 3, day: "Wednesday", startTime: "17:00", endTime: "20:00" }
   ];
 
+  const selectedSlot = availability.find(slot => slot.id === selectedSlotId);
+
   const handleBook = () => {
     if (!selectedSlot) {
       alert("Please select a time slot");
+      return;
+    }
+
+    if (!specificStartTime || !specificEndTime) {
+      alert("Please select specific start and end times for your lesson");
+      return;
+    }
+
+    // Validate times are within available range
+    if (specificStartTime < selectedSlot.startTime || specificEndTime > selectedSlot.endTime) {
+      alert(`Please select times within the available range: ${selectedSlot.startTime} - ${selectedSlot.endTime}`);
+      return;
+    }
+
+    if (specificStartTime >= specificEndTime) {
+      alert("End time must be after start time");
       return;
     }
     
     onBook?.({
       tutorId: tutor.id,
       tutorName: tutor.name,
-      slot: selectedSlot,
+      slot: {
+        ...selectedSlot,
+        specificStartTime,
+        specificEndTime
+      },
       message
     });
+    
+    // Here: send to backend
+    // POST /api/lesson-requests
+    // body: { tutorId, slotId, specificStartTime, specificEndTime, message }
+    // The backend will:
+    // 1. Save the request in the database
+    // 2. Set status to "pending"
+    // 3. Notify the tutor (optional: email, push notification)
+    // Response: { requestId, status: "pending", ... }
     
     alert(`Lesson request sent to ${tutor.name}!`);
     onClose();
@@ -62,35 +95,91 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
 
           {/* Available Time Slots */}
           <div style={styles.section}>
-            <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>Available Time Slots</h3>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>Select Available Time Slot</h3>
             <div style={{ display: "grid", gap: 8 }}>
               {availability.map(slot => (
                 <label
                   key={slot.id}
                   style={{
                     ...styles.slotCard,
-                    background: selectedSlot?.id === slot.id ? "#dbeafe" : "white",
-                    borderColor: selectedSlot?.id === slot.id ? "#0ea5e9" : "#e2e8f0",
+                    background: selectedSlotId === slot.id ? "#dbeafe" : "white",
+                    borderColor: selectedSlotId === slot.id ? "#0ea5e9" : "#e2e8f0",
                     cursor: "pointer"
                   }}
                 >
                   <input
                     type="radio"
                     name="timeSlot"
-                    checked={selectedSlot?.id === slot.id}
-                    onChange={() => setSelectedSlot(slot)}
+                    checked={selectedSlotId === slot.id}
+                    onChange={() => {
+                      setSelectedSlotId(slot.id);
+                      setSpecificStartTime("");
+                      setSpecificEndTime("");
+                    }}
                     style={{ marginRight: 10 }}
                   />
                   <div>
                     <div style={{ fontWeight: 600 }}>{slot.day}</div>
                     <div style={{ fontSize: 14, color: "#64748b" }}>
-                      {slot.startTime} - {slot.endTime}
+                      Available: {slot.startTime} - {slot.endTime}
                     </div>
                   </div>
                 </label>
               ))}
             </div>
           </div>
+
+          {/* Specific Time Selection */}
+          {selectedSlot && (
+            <div style={styles.section}>
+              <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>
+                Choose Your Specific Lesson Time
+              </h3>
+              <div style={{
+                padding: 16,
+                background: "#f0f9ff",
+                border: "1px solid #bae6fd",
+                borderRadius: 12,
+                marginBottom: 12
+              }}>
+                <div style={{ fontSize: 14, color: "#0c4a6e", marginBottom: 8 }}>
+                  ℹ️ Select a specific time within the available range: {selectedSlot.startTime} - {selectedSlot.endTime}
+                </div>
+              </div>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12
+              }}>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>
+                    Lesson Start Time *
+                  </div>
+                  <input
+                    type="time"
+                    value={specificStartTime}
+                    onChange={e => setSpecificStartTime(e.target.value)}
+                    min={selectedSlot.startTime}
+                    max={selectedSlot.endTime}
+                    style={styles.timeInput}
+                  />
+                </label>
+                <label style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>
+                    Lesson End Time *
+                  </div>
+                  <input
+                    type="time"
+                    value={specificEndTime}
+                    onChange={e => setSpecificEndTime(e.target.value)}
+                    min={selectedSlot.startTime}
+                    max={selectedSlot.endTime}
+                    style={styles.timeInput}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Message to tutor */}
           <div style={styles.section}>
@@ -193,6 +282,14 @@ const styles = {
     border: "2px solid",
     borderRadius: 10,
     transition: "all 0.2s"
+  },
+  timeInput: {
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #e2e8f0",
+    outline: "none",
+    fontSize: 14,
+    fontFamily: "inherit"
   },
   textarea: {
     width: "100%",

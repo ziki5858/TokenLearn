@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import BookLessonModal from "./BookLessonModal";
+import ViewProfileModal from "./ViewProfileModal";
 
 export default function RecommendedTutors({ tutors }) {
-  const [selectedTutor, setSelectedTutor] = useState(null);
+  const [selectedTutorForBooking, setSelectedTutorForBooking] = useState(null);
+  const [selectedTutorForProfile, setSelectedTutorForProfile] = useState(null);
 
   const handleBook = (bookingData) => {
     console.log("Booking data:", bookingData);
@@ -23,23 +25,39 @@ export default function RecommendedTutors({ tutors }) {
                 <div style={styles.name}>{t.name}</div>
                 <div>Rating: <b>{t.rating}</b></div>
                 {t.course && <div style={styles.course}>{t.course}</div>}
-                <button
-                  onClick={() => setSelectedTutor(t)}
-                  style={styles.bookBtn}
-                >
-                  Book Lesson
-                </button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={() => setSelectedTutorForProfile(t)}
+                    style={styles.viewBtn}
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    onClick={() => setSelectedTutorForBooking(t)}
+                    style={styles.bookBtn}
+                  >
+                    Book Lesson
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </section>
 
-      {selectedTutor && (
+      {selectedTutorForBooking && (
         <BookLessonModal
-          tutor={selectedTutor}
-          onClose={() => setSelectedTutor(null)}
+          tutor={selectedTutorForBooking}
+          onClose={() => setSelectedTutorForBooking(null)}
           onBook={handleBook}
+        />
+      )}
+
+      {selectedTutorForProfile && (
+        <ViewProfileModal
+          tutor={selectedTutorForProfile}
+          onClose={() => setSelectedTutorForProfile(null)}
+          onBookLesson={() => setSelectedTutorForBooking(selectedTutorForProfile)}
         />
       )}
     </>
@@ -77,8 +95,19 @@ const styles = {
   },
   name: { fontWeight: 700 },
   course: { fontSize: 12, color: "#475569" },
+  viewBtn: {
+    flex: 1,
+    padding: "8px 12px",
+    borderRadius: 8,
+    border: "1px solid #e2e8f0",
+    background: "white",
+    color: "#0f172a",
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: 13
+  },
   bookBtn: {
-    marginTop: 4,
+    flex: 1,
     padding: "8px 12px",
     borderRadius: 8,
     border: "1px solid #0ea5e9",

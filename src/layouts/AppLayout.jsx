@@ -9,9 +9,10 @@ export default function AppLayout() {
         marginBottom: '2rem',
         borderBottom: '2px solid #ccc'
       }}>
-        <nav style={{ display: 'flex', gap: '1rem' }}>
+        <nav style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <Link to="/home">Home</Link>
           <Link to="/find-tutor">Find Tutor</Link>
+          <Link to="/lesson-requests">Lesson Requests</Link>
           <Link to="/me">Personal Area</Link>
           <Link to="/rating">Rating</Link>
         </nav>
