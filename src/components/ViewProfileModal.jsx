@@ -11,9 +11,14 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
     { id: 3, day: "Wednesday", startTime: "17:00", endTime: "20:00" }
   ];
 
-  const courses = tutor?.coursesAsTeacher || tutor?.courses || [
+  const rawCourses = tutor?.coursesAsTeacher || tutor?.courses || [
     { id: 1, name: tutor?.course || `Course ${tutor?.courseNumber || "N/A"}` }
   ];
+
+  // המרה: אם זה מחרוזת -> הפוך לאובייקט. אם זה כבר אובייקט -> תשאיר אותו.
+  const courses = rawCourses.map((c, index) => 
+    typeof c === 'string' ? { id: index, name: c } : c
+  );
 
   const aboutMe = tutor?.aboutMeAsTeacher || tutor?.about || 
     "Experienced tutor passionate about helping students achieve their goals. I focus on building strong fundamentals and practical problem-solving skills.";
