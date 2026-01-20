@@ -36,20 +36,24 @@
     "password": "password123",
     "firstName": "John",
     "lastName": "Doe",
-    "role": "student" | "teacher"
+    "role": "student" | "teacher",
+    "secretQuestion": "What is your pet's name?",
+    "secretAnswer": "Fluffy"
   }
   ```
 - **Response:**
   ```json
   {
     "token": "jwt_token",
-    "user": { /* user object */ }
+    "user": { /* user object */ },
+    "isFirstFiftyUser": true,
+    "bonusTokens": 50
   }
   ```
 
-### 1.3 Forgot Password (שכחתי סיסמה)
+### 1.3 Get Secret Question (קבלת שאלת אבטחה)
 - **Method:** POST
-- **Endpoint:** `/api/auth/forgot-password`
+- **Endpoint:** `/api/auth/secret-question`
 - **Body:**
   ```json
   {
@@ -59,18 +63,44 @@
 - **Response:**
   ```json
   {
-    "message": "Reset link sent to email"
+    "secretQuestion": "What is your pet's name?"
   }
   ```
 
-### 1.4 Reset Password (איפוס סיסמה)
+### 1.4 Verify Secret Answer (אימות תשובה סודית)
+- **Method:** POST
+- **Endpoint:** `/api/auth/verify-secret-answer`
+- **Body:**
+  ```json
+  {
+    "email": "user@example.com",
+    "secretAnswer": "Fluffy"
+  }
+  ```
+- **Response (success):**
+  ```json
+  {
+    "verified": true,
+    "resetToken": "temporary_reset_token"
+  }
+  ```
+- **Response (failure):**
+  ```json
+  {
+    "verified": false,
+    "message": "Incorrect answer"
+  }
+  ```
+
+### 1.5 Reset Password (איפוס סיסמה)
 - **Method:** POST
 - **Endpoint:** `/api/auth/reset-password`
 - **Body:**
   ```json
   {
-    "token": "reset_token",
-    "password": "new_password123"
+    "email": "user@example.com",
+    "resetToken": "temporary_reset_token",
+    "newPassword": "new_password123"
   }
   ```
 - **Response:**
@@ -80,7 +110,7 @@
   }
   ```
 
-### 1.5 Google Login (כניסה עם Google)
+### 1.6 Google Login (כניסה עם Google)
 - **Method:** POST
 - **Endpoint:** `/api/auth/google`
 - **Body:**
@@ -93,6 +123,29 @@
   ```json
   {
     "token": "jwt_token",
+    "user": { /* user object */ }
+  }
+  ```
+
+### 1.7 Logout (יציאה)
+- **Method:** POST
+- **Endpoint:** `/api/auth/logout`
+- **Headers:** `Authorization: Bearer {token}`
+- **Response:**
+  ```json
+  {
+    "message": "Logged out successfully"
+  }
+  ```
+
+### 1.8 Verify Token (אימות טוקן)
+- **Method:** GET
+- **Endpoint:** `/api/auth/verify`
+- **Headers:** `Authorization: Bearer {token}`
+- **Response:**
+  ```json
+  {
+    "valid": true,
     "user": { /* user object */ }
   }
   ```
@@ -115,6 +168,10 @@
     "phone": "0501234567",
     "photoUrl": "https://...",
     "role": "student" | "teacher",
+    "isAdmin": false,
+    "tokenBalance": 50,
+    "tutorRating": 4.8,
+    "totalLessonsAsTutor": 25,
     "coursesAsTeacher": [
       { "id": 1, "name": "Algorithms" },
       { "id": 2, "name": "Data Structures" }
@@ -137,13 +194,16 @@
         "startTime": "17:00",
         "endTime": "20:00"
       }
-    ]
+    ],
+    "aboutMeAsTeacher": "Experienced tutor passionate about teaching.",
+    "aboutMeAsStudent": "Looking to learn new skills.",
+    "secretQuestion": "What is your pet's name?"
   }
   ```
 
 ### 2.2 Update User Profile (עדכון פרופיל)
-- **Method:** PUT
-- **Endpoint:** `/api/users/me`
+- **Method:** POST
+- **Endpoint:** `/api/users/profile`
 - **Headers:** `Authorization: Bearer {token}`
 - **Body:**
   ```json
@@ -153,14 +213,15 @@
     "phone": "0501234567",
     "photoUrl": "https://...",
     "coursesAsTeacher": [
-      { "name": "Algorithms" },
-      { "name": "Data Structures" }
+      { "id": 1, "name": "Algorithms" },
+      { "id": 2, "name": "Data Structures" }
     ],
     "coursesAsStudent": [
-      { "name": "SQL" }
+      { "id": 3, "name": "SQL" }
     ],
     "availabilityAsTeacher": [
       {
+        "id": 1,
         "day": "Sunday",
         "startTime": "18:00",
         "endTime": "21:00"
@@ -168,11 +229,14 @@
     ],
     "availabilityAsStudent": [
       {
+        "id": 2,
         "day": "Monday",
         "startTime": "17:00",
         "endTime": "20:00"
       }
-    ]
+    ],
+    "aboutMeAsTeacher": "Teaching experience description",
+    "aboutMeAsStudent": "Learning goals description"
   }
   ```
 - **Response:** Updated user object
@@ -197,9 +261,135 @@
 
 ---
 
-## 3️⃣ Lesson Requests (בקשות שיעורים)
+## 3️⃣ Tokens (טוקנים)
 
-### 3.1 Get Lesson Requests as Student (קבלת בקשות כסטודנט)
+### 3.1 Get Token Balance (קבלת יתרת טוקנים)
+- **Method:** GET
+- **Endpoint:** `/api/tokens/balance`
+- **Headers:** `Authorization: Bearer {token}`
+- **Response:**
+  ```json
+  {
+    "balance": 50,
+    "pendingTransfers": 0
+  }
+  ```
+
+### 3.2 Buy Tokens (רכישת טוקנים)
+- **Method:** POST
+- **Endpoint:** `/api/tokens/buy`
+- **Headers:** `Authorization: Bearer {token}`
+- **Body:**
+  ```json
+  {
+    "amount": 10,
+    "paymentMethod": "credit_card",
+    "paymentDetails": { /* payment provider details */ }
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "newBalance": 60,
+    "transactionId": "txn_123"
+  }
+  ```
+
+### 3.3 Transfer Tokens (העברת טוקנים - תשלום על שיעור)
+- **Method:** POST
+- **Endpoint:** `/api/tokens/transfer`
+- **Headers:** `Authorization: Bearer {token}`
+- **Body:**
+  ```json
+  {
+    "toUserId": "tutor_id",
+    "amount": 1,
+    "lessonId": 123,
+    "reason": "lesson_payment"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true,
+    "newBalance": 49,
+    "transactionId": "txn_456"
+  }
+  ```
+
+### 3.4 Get Token History (היסטוריית טוקנים)
+- **Method:** GET
+- **Endpoint:** `/api/tokens/history`
+- **Headers:** `Authorization: Bearer {token}`
+- **Query Params:** `?limit=20&offset=0`
+- **Response:**
+  ```json
+  {
+    "transactions": [
+      {
+        "id": "txn_456",
+        "type": "transfer_out",
+        "amount": -1,
+        "toUser": "Daniel Cohen",
+        "reason": "Lesson payment - Algorithms",
+        "createdAt": "2025-12-23T18:00:00"
+      },
+      {
+        "id": "txn_123",
+        "type": "purchase",
+        "amount": 10,
+        "reason": "Token purchase",
+        "createdAt": "2025-12-20T10:30:00"
+      },
+      {
+        "id": "txn_001",
+        "type": "bonus",
+        "amount": 50,
+        "reason": "Welcome bonus - First 50 users",
+        "createdAt": "2025-12-15T09:00:00"
+      }
+    ],
+    "totalCount": 3
+  }
+  ```
+
+---
+
+## 4️⃣ Courses (קורסים)
+
+### 4.1 Get All Courses (קבלת כל הקורסים)
+- **Method:** GET
+- **Endpoint:** `/api/courses`
+- **Headers:** `Authorization: Bearer {token}`
+- **Query Params:** `?search=algo&category=programming`
+- **Response:**
+  ```json
+  {
+    "courses": [
+      { "id": 1, "name": "Algorithms", "category": "Programming" },
+      { "id": 2, "name": "Data Structures", "category": "Programming" },
+      { "id": 3, "name": "SQL Basics", "category": "Databases" },
+      { "id": 4, "name": "Machine Learning", "category": "AI" }
+    ]
+  }
+  ```
+
+### 4.2 Get Course Categories (קבלת קטגוריות קורסים)
+- **Method:** GET
+- **Endpoint:** `/api/courses/categories`
+- **Response:**
+  ```json
+  {
+    "categories": ["Programming", "Databases", "AI", "Web Development", "Math"]
+  }
+  ```
+
+---
+
+## 5️⃣ Lesson Requests (בקשות שיעורים)
+
+### 5.1 Get Lesson Requests as Student (קבלת בקשות כסטודנט)
 - **Method:** GET
 - **Endpoint:** `/api/lesson-requests/student`
 - **Headers:** `Authorization: Bearer {token}`
@@ -228,7 +418,7 @@
   ]
   ```
 
-### 3.2 Get Lesson Requests as Teacher (קבלת בקשות כמורה)
+### 5.2 Get Lesson Requests as Teacher (קבלת בקשות כמורה)
 - **Method:** GET
 - **Endpoint:** `/api/lesson-requests/teacher`
 - **Headers:** `Authorization: Bearer {token}`
@@ -256,7 +446,7 @@
   ]
   ```
 
-### 3.3 Create Lesson Request (יצירת בקשת שיעור)
+### 5.3 Create Lesson Request (יצירת בקשת שיעור)
 - **Method:** POST
 - **Endpoint:** `/api/lesson-requests`
 - **Headers:** `Authorization: Bearer {token}`
@@ -277,21 +467,20 @@
   ```
 - **Response:** Created lesson request object
 
-### 3.4 Approve Lesson Request (אישור בקשת שיעור)
-- **Method:** PUT
+### 5.4 Approve Lesson Request (אישור בקשת שיעור)
+- **Method:** POST
 - **Endpoint:** `/api/lesson-requests/{requestId}/approve`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response:**
   ```json
   {
-    "id": 4,
-    "status": "approved",
-    "updatedAt": "2025-12-21T17:00:00"
+    "requestId": 4,
+    "status": "approved"
   }
   ```
 
-### 3.5 Reject Lesson Request (דחיית בקשת שיעור)
-- **Method:** PUT
+### 5.5 Reject Lesson Request (דחיית בקשת שיעור)
+- **Method:** POST
 - **Endpoint:** `/api/lesson-requests/{requestId}/reject`
 - **Headers:** `Authorization: Bearer {token}`
 - **Body:**
@@ -303,14 +492,13 @@
 - **Response:**
   ```json
   {
-    "id": 4,
+    "requestId": 4,
     "status": "rejected",
-    "rejectionMessage": "I'm not available at that time",
-    "updatedAt": "2025-12-21T17:00:00"
+    "rejectionReason": "I'm not available at that time"
   }
   ```
 
-### 3.6 Cancel Lesson Request (ביטול בקשת שיעור)
+### 5.6 Cancel Lesson Request (ביטול בקשת שיעור)
 - **Method:** DELETE
 - **Endpoint:** `/api/lesson-requests/{requestId}`
 - **Headers:** `Authorization: Bearer {token}`
@@ -323,9 +511,9 @@
 
 ---
 
-## 4️⃣ Tutors (מחנכים)
+## 6️⃣ Tutors (מחנכים)
 
-### 4.1 Get Recommended Tutors (קבלת מחנכים מומלצים)
+### 6.1 Get Recommended Tutors (קבלת מחנכים מומלצים)
 - **Method:** GET
 - **Endpoint:** `/api/tutors/recommended`
 - **Headers:** `Authorization: Bearer {token}`
@@ -346,20 +534,20 @@
   ]
   ```
 
-### 4.2 Search Tutors (חיפוש מחנכים)
+### 6.2 Search Tutors (חיפוש מחנכים)
 - **Method:** GET
 - **Endpoint:** `/api/tutors/search`
 - **Headers:** `Authorization: Bearer {token}`
 - **Query Params:** `?course=Algorithms&minRating=4&limit=20`
 - **Response:** Array of tutor objects
 
-### 4.3 Get Tutor Profile (קבלת פרופיל מחנך)
+### 6.3 Get Tutor Profile (קבלת פרופיל מחנך)
 - **Method:** GET
 - **Endpoint:** `/api/tutors/{tutorId}`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response:** Detailed tutor object with all info
 
-### 4.4 Get Tutor Availability (קבלת זמינות מחנך)
+### 6.4 Get Tutor Availability (קבלת זמינות מחנך)
 - **Method:** GET
 - **Endpoint:** `/api/tutors/{tutorId}/availability`
 - **Headers:** `Authorization: Bearer {token}`
@@ -377,9 +565,9 @@
 
 ---
 
-## 5️⃣ Lessons (שיעורים)
+## 7️⃣ Lessons (שיעורים)
 
-### 5.1 Get Upcoming Lessons (קבלת שיעורים קרובים)
+### 7.1 Get Upcoming Lessons (קבלת שיעורים קרובים)
 - **Method:** GET
 - **Endpoint:** `/api/lessons/upcoming`
 - **Headers:** `Authorization: Bearer {token}`
@@ -399,13 +587,13 @@
   ]
   ```
 
-### 5.2 Get Lesson Details (קבלת פרטי שיעור)
+### 7.2 Get Lesson Details (קבלת פרטי שיעור)
 - **Method:** GET
 - **Endpoint:** `/api/lessons/{lessonId}`
 - **Headers:** `Authorization: Bearer {token}`
 - **Response:** Detailed lesson object
 
-### 5.3 Complete Lesson (סיום שיעור)
+### 7.3 Complete Lesson (סיום שיעור)
 - **Method:** PUT
 - **Endpoint:** `/api/lessons/{lessonId}/complete`
 - **Headers:** `Authorization: Bearer {token}`
@@ -418,7 +606,27 @@
   }
   ```
 
-### 5.4 Get Lesson History (קבלת היסטוריית שיעורים)
+### 7.4 Cancel Lesson (ביטול שיעור)
+- **Method:** DELETE
+- **Endpoint:** `/api/lessons/{lessonId}`
+- **Headers:** `Authorization: Bearer {token}`
+- **Body:**
+  ```json
+  {
+    "reason": "Schedule conflict"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "id": 1,
+    "status": "cancelled",
+    "cancelledAt": "2025-12-22T10:00:00",
+    "refundedTokens": 1
+  }
+  ```
+
+### 7.5 Get Lesson History (קבלת היסטוריית שיעורים)
 - **Method:** GET
 - **Endpoint:** `/api/lessons/history`
 - **Headers:** `Authorization: Bearer {token}`
@@ -427,9 +635,9 @@
 
 ---
 
-## 6️⃣ Ratings (דירוגים)
+## 8️⃣ Ratings (דירוגים)
 
-### 6.1 Rate Lesson (דירוג שיעור)
+### 8.1 Rate Lesson (דירוג שיעור)
 - **Method:** POST
 - **Endpoint:** `/api/lessons/{lessonId}/rate`
 - **Headers:** `Authorization: Bearer {token}`
@@ -450,7 +658,7 @@
   }
   ```
 
-### 6.2 Get User Ratings (קבלת דירוגי משתמש)
+### 8.2 Get User Ratings (קבלת דירוגי משתמש)
 - **Method:** GET
 - **Endpoint:** `/api/users/{userId}/ratings`
 - **Headers:** `Authorization: Bearer {token}`
@@ -471,9 +679,9 @@
 
 ---
 
-## 7️⃣ Admin (ניהול)
+## 9️⃣ Admin (ניהול)
 
-### 7.1 Get Admin Dashboard (קבלת דשבורד מנהל)
+### 9.1 Get Admin Dashboard (קבלת דשבורד מנהל)
 - **Method:** GET
 - **Endpoint:** `/api/admin/dashboard`
 - **Headers:** `Authorization: Bearer {token}`
@@ -494,14 +702,14 @@
   }
   ```
 
-### 7.2 Get Users List (קבלת רשימת משתמשים)
+### 9.2 Get Users List (קבלת רשימת משתמשים)
 - **Method:** GET
 - **Endpoint:** `/api/admin/users`
 - **Headers:** `Authorization: Bearer {token}`
 - **Query Params:** `?limit=50&offset=0&role=teacher|student`
 - **Response:** Array of user objects
 
-### 7.3 Get Lessons Statistics (קבלת סטטיסטיקות שיעורים)
+### 9.3 Get Lessons Statistics (קבלת סטטיסטיקות שיעורים)
 - **Method:** GET
 - **Endpoint:** `/api/admin/statistics`
 - **Headers:** `Authorization: Bearer {token}`
@@ -515,7 +723,7 @@
   }
   ```
 
-### 7.4 Contact Admin (צור קשר עם מנהל)
+### 9.4 Contact Admin (צור קשר עם מנהל)
 - **Method:** POST
 - **Endpoint:** `/api/admin/contact`
 - **Headers:** `Authorization: Bearer {token}`
@@ -535,38 +743,121 @@
   }
   ```
 
+### 9.5 Block Tutor (חסימת מחנך)
+- **Method:** POST
+- **Endpoint:** `/api/admin/tutors/{tutorId}/block`
+- **Headers:** `Authorization: Bearer {token}`
+- **Response:**
+  ```json
+  {
+    "tutorId": "tutor_id",
+    "blocked": true
+  }
+  ```
+
+### 9.6 Unblock Tutor (ביטול חסימת מחנך)
+- **Method:** POST
+- **Endpoint:** `/api/admin/tutors/{tutorId}/unblock`
+- **Headers:** `Authorization: Bearer {token}`
+- **Response:**
+  ```json
+  {
+    "tutorId": "tutor_id",
+    "blocked": false
+  }
+  ```
+
+### 9.7 Get All Lessons (Admin) (קבלת כל השיעורים)
+- **Method:** GET
+- **Endpoint:** `/api/admin/lessons`
+- **Headers:** `Authorization: Bearer {token}`
+- **Query Params:** `?status=scheduled|completed|cancelled&limit=50&offset=0`
+- **Response:**
+  ```json
+  {
+    "lessons": [
+      {
+        "id": 1,
+        "studentId": "student_id",
+        "studentName": "John Doe",
+        "tutorId": "tutor_id",
+        "tutorName": "Jane Smith",
+        "course": "Algorithms",
+        "startTime": "2025-12-24T18:00:00",
+        "endTime": "2025-12-24T19:00:00",
+        "status": "scheduled"
+      }
+    ],
+    "totalCount": 45
+  }
+  ```
+
+### 9.8 Update User Tokens (Admin) (עדכון טוקנים למשתמש)
+- **Method:** PUT
+- **Endpoint:** `/api/admin/users/{userId}/tokens`
+- **Headers:** `Authorization: Bearer {token}`
+- **Body:**
+  ```json
+  {
+    "amount": 10,
+    "reason": "Compensation for cancelled lesson"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "userId": "user_id",
+    "newBalance": 60,
+    "adjustment": 10
+  }
+  ```
+
 ---
 
 ## 📋 Summary Table
 
-| #   | Category | Endpoint | Method |
-|-----|----------|----------|--------|
-| 1.1 | Auth | `/api/auth/login` | POST |
-| 1.2 | Auth | `/api/auth/register` | POST |
-| 1.3 | Auth | `/api/auth/forgot-password` | POST |
-| 1.4 | Auth | `/api/auth/reset-password` | POST |
-| 1.5 | Auth | `/api/auth/google` | POST |
-| 2.1 | Profile | `/api/users/me` | GET |
-| 2.2 | Profile | `/api/users/me` | PUT |
-| 2.3 | Profile | `/api/users/me/photo` | POST |
-| 2.4 | Profile | `/api/users/{userId}` | GET |
-| 3.1 | Requests | `/api/lesson-requests/student` | GET |
-| 3.2 | Requests | `/api/lesson-requests/teacher` | GET |
-| 3.3 | Requests | `/api/lesson-requests` | POST |
-| 3.4 | Requests | `/api/lesson-requests/{requestId}/approve` | PUT |
-| 3.5 | Requests | `/api/lesson-requests/{requestId}/reject` | PUT |
-| 3.6 | Requests | `/api/lesson-requests/{requestId}` | DELETE |
-| 4.1 | Tutors | `/api/tutors/recommended` | GET |
-| 4.2 | Tutors | `/api/tutors/search` | GET |
-| 4.3 | Tutors | `/api/tutors/{tutorId}` | GET |
-| 4.4 | Tutors | `/api/tutors/{tutorId}/availability` | GET |
-| 5.1 | Lessons | `/api/lessons/upcoming` | GET |
-| 5.2 | Lessons | `/api/lessons/{lessonId}` | GET |
-| 5.3 | Lessons | `/api/lessons/{lessonId}/complete` | PUT |
-| 5.4 | Lessons | `/api/lessons/history` | GET |
-| 6.1 | Ratings | `/api/lessons/{lessonId}/rate` | POST |
-| 6.2 | Ratings | `/api/users/{userId}/ratings` | GET |
-| 7.1 | Admin | `/api/admin/dashboard` | GET |
-| 7.2 | Admin | `/api/admin/users` | GET |
-| 7.3 | Admin | `/api/admin/statistics` | GET |
-| 7.4 | Admin | `/api/admin/contact` | POST |
+| #    | Category | Endpoint | Method |
+|------|----------|----------|--------|
+| 1.1  | Auth | `/api/auth/login` | POST |
+| 1.2  | Auth | `/api/auth/register` | POST |
+| 1.3  | Auth | `/api/auth/secret-question` | POST |
+| 1.4  | Auth | `/api/auth/verify-secret-answer` | POST |
+| 1.5  | Auth | `/api/auth/reset-password` | POST |
+| 1.6  | Auth | `/api/auth/google` | POST |
+| 1.7  | Auth | `/api/auth/logout` | POST |
+| 1.8  | Auth | `/api/auth/verify` | GET |
+| 2.1  | Profile | `/api/users/me` | GET |
+| 2.2  | Profile | `/api/users/profile` | POST |
+| 2.3  | Profile | `/api/users/me/photo` | POST |
+| 2.4  | Profile | `/api/users/{userId}` | GET |
+| 3.1  | Tokens | `/api/tokens/balance` | GET |
+| 3.2  | Tokens | `/api/tokens/buy` | POST |
+| 3.3  | Tokens | `/api/tokens/transfer` | POST |
+| 3.4  | Tokens | `/api/tokens/history` | GET |
+| 4.1  | Courses | `/api/courses` | GET |
+| 4.2  | Courses | `/api/courses/categories` | GET |
+| 5.1  | Requests | `/api/lesson-requests/student` | GET |
+| 5.2  | Requests | `/api/lesson-requests/teacher` | GET |
+| 5.3  | Requests | `/api/lesson-requests` | POST |
+| 5.4  | Requests | `/api/lesson-requests/{requestId}/approve` | POST |
+| 5.5  | Requests | `/api/lesson-requests/{requestId}/reject` | POST |
+| 5.6  | Requests | `/api/lesson-requests/{requestId}` | DELETE |
+| 6.1  | Tutors | `/api/tutors/recommended` | GET |
+| 6.2  | Tutors | `/api/tutors/search` | GET |
+| 6.3  | Tutors | `/api/tutors/{tutorId}` | GET |
+| 6.4  | Tutors | `/api/tutors/{tutorId}/availability` | GET |
+| 7.1  | Lessons | `/api/lessons/upcoming` | GET |
+| 7.2  | Lessons | `/api/lessons/{lessonId}` | GET |
+| 7.3  | Lessons | `/api/lessons/{lessonId}/complete` | PUT |
+| 7.4  | Lessons | `/api/lessons/{lessonId}` | DELETE |
+| 7.5  | Lessons | `/api/lessons/history` | GET |
+| 8.1  | Ratings | `/api/lessons/{lessonId}/rate` | POST |
+| 8.2  | Ratings | `/api/users/{userId}/ratings` | GET |
+| 9.1  | Admin | `/api/admin/dashboard` | GET |
+| 9.2  | Admin | `/api/admin/users` | GET |
+| 9.3  | Admin | `/api/admin/statistics` | GET |
+| 9.4  | Admin | `/api/admin/contact` | POST |
+| 9.5  | Admin | `/api/admin/tutors/{tutorId}/block` | POST |
+| 9.6  | Admin | `/api/admin/tutors/{tutorId}/unblock` | POST |
+| 9.7  | Admin | `/api/admin/lessons` | GET |
+| 9.8  | Admin | `/api/admin/users/{userId}/tokens` | PUT |

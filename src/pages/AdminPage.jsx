@@ -5,19 +5,20 @@ import Card from "../components/Card";
 import Input from "../components/Input";
 import Button from "../components/Button";
 
-// Mock data - will come from backend
+// Mock data - matching API format (GET /api/admin/users)
 const mockUsers = [
-  { id: 1, name: "John Doe", email: "john@example.com", type: "Student", tokens: 12, status: "Active" },
-  { id: 2, name: "Jane Smith", email: "jane@example.com", type: "Tutor", tokens: 45, rating: 4.9, status: "Active" },
-  { id: 3, name: "Bob Wilson", email: "bob@example.com", type: "Student", tokens: 8, status: "Active" },
-  { id: 4, name: "Alice Brown", email: "alice@example.com", type: "Tutor", tokens: 32, rating: 4.7, status: "Active" },
-  { id: 5, name: "Charlie Davis", email: "charlie@example.com", type: "Student", tokens: 15, status: "Active" }
+  { id: "user_1", firstName: "John", lastName: "Doe", email: "john@example.com", role: "student", tokenBalance: 12, status: "Active" },
+  { id: "user_2", firstName: "Jane", lastName: "Smith", email: "jane@example.com", role: "teacher", tokenBalance: 45, tutorRating: 4.9, status: "Active" },
+  { id: "user_3", firstName: "Bob", lastName: "Wilson", email: "bob@example.com", role: "student", tokenBalance: 8, status: "Active" },
+  { id: "user_4", firstName: "Alice", lastName: "Brown", email: "alice@example.com", role: "teacher", tokenBalance: 32, tutorRating: 4.7, status: "Active" },
+  { id: "user_5", firstName: "Charlie", lastName: "Davis", email: "charlie@example.com", role: "student", tokenBalance: 15, status: "Active" }
 ];
 
+// Mock data - matching API format (GET /api/lessons/upcoming)
 const mockLessons = [
-  { id: 1, student: "John Doe", tutor: "Jane Smith", topic: "SQL Basics", time: "Tomorrow 18:00", status: "Scheduled" },
-  { id: 2, student: "Bob Wilson", tutor: "Alice Brown", topic: "Algorithms", time: "Today 19:00", status: "Scheduled" },
-  { id: 3, student: "Charlie Davis", tutor: "Jane Smith", topic: "Data Structures", time: "Dec 25, 17:00", status: "Scheduled" }
+  { id: 1, studentId: "user_1", studentName: "John Doe", tutorId: "user_2", tutorName: "Jane Smith", course: "SQL Basics", startTime: "2025-12-24T18:00:00", endTime: "2025-12-24T19:00:00", status: "scheduled" },
+  { id: 2, studentId: "user_3", studentName: "Bob Wilson", tutorId: "user_4", tutorName: "Alice Brown", course: "Algorithms", startTime: "2025-12-23T19:00:00", endTime: "2025-12-23T20:00:00", status: "scheduled" },
+  { id: 3, studentId: "user_5", studentName: "Charlie Davis", tutorId: "user_2", tutorName: "Jane Smith", course: "Data Structures", startTime: "2025-12-25T17:00:00", endTime: "2025-12-25T18:00:00", status: "scheduled" }
 ];
 
 export default function AdminPage() {
@@ -30,9 +31,11 @@ export default function AdminPage() {
 
   // Filter users based on search and type
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchQuery.toLowerCase()) || 
                          u.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === "All" || u.type === filterType;
+    const userType = u.role === "teacher" ? "Tutor" : "Student";
+    const matchesType = filterType === "All" || userType === filterType;
     return matchesSearch && matchesType;
   });
 
@@ -143,21 +146,24 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map(u => (
+                  {filteredUsers.map(u => {
+                    const userType = u.role === "teacher" ? "Tutor" : "Student";
+                    const fullName = `${u.firstName} ${u.lastName}`;
+                    return (
                     <tr key={u.id} style={styles.tr}>
-                      <td style={styles.td}>{u.name}</td>
+                      <td style={styles.td}>{fullName}</td>
                       <td style={styles.td}>{u.email}</td>
                       <td style={styles.td}>
                         <span style={{
                           ...styles.badge,
-                          background: u.type === "Tutor" ? "#dbeafe" : "#fce7f3",
-                          color: u.type === "Tutor" ? "#1e40af" : "#9f1239"
+                          background: userType === "Tutor" ? "#dbeafe" : "#fce7f3",
+                          color: userType === "Tutor" ? "#1e40af" : "#9f1239"
                         }}>
-                          {u.type}
+                          {userType}
                         </span>
                       </td>
-                      <td style={styles.td}>{u.tokens}</td>
-                      <td style={styles.td}>{u.rating ?? "N/A"}</td>
+                      <td style={styles.td}>{u.tokenBalance}</td>
+                      <td style={styles.td}>{u.tutorRating ?? "N/A"}</td>
                       <td style={styles.td}>
                         <span style={{
                           ...styles.badge,
@@ -168,9 +174,9 @@ export default function AdminPage() {
                         </span>
                       </td>
                       <td style={styles.td}>
-                        {u.type === "Tutor" && u.status === "Active" && (
+                        {u.role === "teacher" && u.status === "Active" && (
                           <button
-                            onClick={() => handleBlockTutor(u.id, u.name)}
+                            onClick={() => handleBlockTutor(u.id, fullName)}
                             style={styles.blockBtn}
                           >
                             Block
@@ -178,7 +184,7 @@ export default function AdminPage() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -200,19 +206,24 @@ export default function AdminPage() {
                   <tr>
                     <th style={styles.th}>Student</th>
                     <th style={styles.th}>Tutor</th>
-                    <th style={styles.th}>Topic</th>
+                    <th style={styles.th}>Course</th>
                     <th style={styles.th}>Time</th>
                     <th style={styles.th}>Status</th>
                     <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lessons.map(l => (
+                  {lessons.map(l => {
+                    const formatDateTime = (dateStr) => {
+                      const date = new Date(dateStr);
+                      return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    };
+                    return (
                     <tr key={l.id} style={styles.tr}>
-                      <td style={styles.td}>{l.student}</td>
-                      <td style={styles.td}>{l.tutor}</td>
-                      <td style={styles.td}>{l.topic}</td>
-                      <td style={styles.td}>{l.time}</td>
+                      <td style={styles.td}>{l.studentName}</td>
+                      <td style={styles.td}>{l.tutorName}</td>
+                      <td style={styles.td}>{l.course}</td>
+                      <td style={styles.td}>{formatDateTime(l.startTime)}</td>
                       <td style={styles.td}>
                         <span style={{
                           ...styles.badge,
@@ -224,14 +235,14 @@ export default function AdminPage() {
                       </td>
                       <td style={styles.td}>
                         <button
-                          onClick={() => handleCancelLesson(l.id, `${l.student} with ${l.tutor}`)}
+                          onClick={() => handleCancelLesson(l.id, `${l.studentName} with ${l.tutorName}`)}
                           style={styles.cancelBtn}
                         >
                           Cancel
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

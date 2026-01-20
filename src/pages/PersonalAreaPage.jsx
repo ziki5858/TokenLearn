@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { useApp } from "../context/useApp";
 import Input from "../components/Input";
 import Button from "../components/Button";
@@ -19,42 +19,41 @@ const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 export default function PersonalAreaPage() {
   const { user, updateUserProfile, loading, addNotification } = useApp();
   
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
+  // Initialize state directly from user data
+  const [firstName, setFirstName] = useState(user?.firstName || "");
+  const [lastName, setLastName] = useState(user?.lastName || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [photoUrl, setPhotoUrl] = useState(user?.photoUrl || "");
   const objectUrlRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Load user data on mount
-  useEffect(() => {
-    if (user) {
-      setFirstName(user.firstName || "");
-      setLastName(user.lastName || "");
-      setPhone(user.phone || "");
-      setPhotoUrl(user.photoUrl || "");
-    }
-  }, [user]);
+  // Courses - initialize from user data or with defaults
+  const [coursesAsTeacher, setCoursesAsTeacher] = useState(
+    user?.coursesAsTeacher?.length > 0 
+      ? user.coursesAsTeacher 
+      : [{ id: 1, name: "" }]
+  );
+  const [coursesAsStudent, setCoursesAsStudent] = useState(
+    user?.coursesAsStudent?.length > 0 
+      ? user.coursesAsStudent 
+      : [{ id: 2, name: "" }]
+  );
 
-  // Courses
-  const [coursesAsTeacher, setCoursesAsTeacher] = useState([
-    { id: Date.now(), name: "" }
-  ]);
-  const [coursesAsStudent, setCoursesAsStudent] = useState([
-    { id: Date.now() + 1, name: "" }
-  ]);
+  // Availability - initialize from user data or with defaults
+  const [availabilityAsTeacher, setAvailabilityAsTeacher] = useState(
+    user?.availabilityAsTeacher?.length > 0 
+      ? user.availabilityAsTeacher 
+      : [{ id: 3, day: "", startTime: "", endTime: "" }]
+  );
+  const [availabilityAsStudent, setAvailabilityAsStudent] = useState(
+    user?.availabilityAsStudent?.length > 0 
+      ? user.availabilityAsStudent 
+      : [{ id: 4, day: "", startTime: "", endTime: "" }]
+  );
 
-  // Availability - separate for teacher and student
-  const [availabilityAsTeacher, setAvailabilityAsTeacher] = useState([
-    { id: Date.now(), day: "", startTime: "", endTime: "" }
-  ]);
-  const [availabilityAsStudent, setAvailabilityAsStudent] = useState([
-    { id: Date.now() + 2, day: "", startTime: "", endTime: "" }
-  ]);
-
-  // About me - separate for teacher and student
-  const [aboutMeAsTeacher, setAboutMeAsTeacher] = useState("");
-  const [aboutMeAsStudent, setAboutMeAsStudent] = useState("");
+  // About me - initialize from user data or with defaults
+  const [aboutMeAsTeacher, setAboutMeAsTeacher] = useState(user?.aboutMeAsTeacher || "");
+  const [aboutMeAsStudent, setAboutMeAsStudent] = useState(user?.aboutMeAsStudent || "");
 
   const generalComplete = Boolean(firstName && lastName && phone);
 
@@ -368,7 +367,7 @@ export default function PersonalAreaPage() {
         <p style={{ margin: "0 0 8px", fontSize: 14, color: "#64748b" }}>
           Set your available time slots for teaching
         </p>
-        {availabilityAsTeacher.map((slot, index) => (
+        {availabilityAsTeacher.map((slot) => (
           <div key={slot.id} style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr 1fr auto",
@@ -529,7 +528,7 @@ export default function PersonalAreaPage() {
         <p style={{ margin: "0 0 8px", fontSize: 14, color: "#64748b" }}>
           Set your available time slots for learning
         </p>
-        {availabilityAsStudent.map((slot, index) => (
+        {availabilityAsStudent.map((slot) => (
           <div key={slot.id} style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr 1fr auto",

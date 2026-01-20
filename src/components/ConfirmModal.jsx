@@ -50,32 +50,35 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'rgba(0, 0, 0, 0.5)',
+    background: 'rgba(0, 0, 0, 0.6)',
+    backdropFilter: 'blur(4px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    padding: 16
+    padding: 16,
+    animation: 'fadeIn 0.2s ease-out'
   },
   modal: {
     background: 'white',
-    borderRadius: 16,
+    borderRadius: 20,
     maxWidth: 450,
     width: '100%',
-    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)'
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    animation: 'slideUp 0.3s ease-out'
   },
   header: {
-    padding: 20,
+    padding: '20px 24px',
     borderBottom: '1px solid #e2e8f0'
   },
   body: {
-    padding: 20
+    padding: '20px 24px'
   },
   actions: {
     display: 'flex',
     gap: 12,
     justifyContent: 'flex-end',
-    padding: 20,
+    padding: '16px 24px',
     borderTop: '1px solid #e2e8f0'
   },
   cancelBtn: {
@@ -86,7 +89,8 @@ const styles = {
     color: '#0f172a',
     fontWeight: 700,
     cursor: 'pointer',
-    fontSize: 14
+    fontSize: 14,
+    transition: 'all 0.2s'
   },
   confirmBtn: {
     padding: '10px 20px',
@@ -96,16 +100,18 @@ const styles = {
     color: '#0b1021',
     fontWeight: 700,
     cursor: 'pointer',
-    fontSize: 14
+    fontSize: 14,
+    transition: 'all 0.2s'
   },
   dangerBtn: {
     padding: '10px 20px',
     borderRadius: 10,
     border: '1px solid #dc2626',
-    background: '#dc2626',
+    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
     color: 'white',
     fontWeight: 700,
     cursor: 'pointer',
-    fontSize: 14
+    fontSize: 14,
+    transition: 'all 0.2s'
   }
 };

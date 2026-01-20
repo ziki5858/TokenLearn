@@ -7,22 +7,31 @@ const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 export default function BookLessonModal({ tutor, onClose, onBook }) {
   const { createLessonRequest, addNotification } = useApp();
   const [selectedSlotId, setSelectedSlotId] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState("");
   const [specificStartTime, setSpecificStartTime] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock availability data - in real app, this would come from the tutor's profile
-  const availability = tutor?.availability || [
+  // Use tutor's availability from profile (API format: availabilityAsTeacher)
+  const availability = tutor?.availabilityAsTeacher || tutor?.availability || [
     { id: 1, day: "Sunday", startTime: "18:00", endTime: "21:00" },
     { id: 2, day: "Monday", startTime: "18:00", endTime: "21:00" },
     { id: 3, day: "Wednesday", startTime: "17:00", endTime: "20:00" }
   ];
+
+  // Get courses from tutor profile (API format: courses array)
+  const courses = tutor?.courses || [];
 
   const selectedSlot = availability.find(slot => slot.id === selectedSlotId);
 
   const handleBook = async () => {
     if (!selectedSlot) {
       addNotification("Please select a time slot", "error");
+      return;
+    }
+
+    if (!selectedCourse) {
+      addNotification("Please select a course", "error");
       return;
     }
 
@@ -71,11 +80,14 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
 
     setIsSubmitting(true);
     
+    // API expects: tutorId, course, requestedSlot, message
     const requestData = {
       tutorId: tutor.id,
-      tutorName: tutor.name,
-      slot: {
-        ...selectedSlot,
+      course: selectedCourse,
+      requestedSlot: {
+        day: selectedSlot.day,
+        startTime: selectedSlot.startTime,
+        endTime: selectedSlot.endTime,
         specificStartTime,
         specificEndTime
       },
@@ -106,7 +118,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
             <div style={{ display: "grid", gap: 4 }}>
               <div style={{ fontSize: 18, fontWeight: 700 }}>{tutor.name}</div>
               <div style={{ fontSize: 14, color: "#64748b" }}>
-                Rating: ⭐ {tutor.rating} • {tutor.course || `Course ${tutor.courseNumber}`}
+                Rating: ⭐ {tutor.rating} • {tutor.courses?.join(", ") || "No courses listed"}
               </div>
             </div>
           </div>
@@ -120,6 +132,30 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
               </p>
             </div>
           )}
+
+          {/* Course Selection */}
+          <div style={styles.section}>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>Select Course *</h3>
+            <select
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid #e2e8f0",
+                fontSize: 14,
+                background: "white"
+              }}
+            >
+              <option value="">Select a course</option>
+              {courses.map((course, index) => (
+                <option key={index} value={course}>
+                  {course}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Available Time Slots */}
           <div style={styles.section}>
@@ -295,32 +331,36 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    background: "rgba(0, 0, 0, 0.5)",
+    background: "rgba(0, 0, 0, 0.6)",
+    backdropFilter: "blur(4px)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1000,
-    padding: 16
+    padding: 16,
+    animation: "fadeIn 0.2s ease-out"
   },
   modal: {
     background: "white",
-    borderRadius: 16,
+    borderRadius: 20,
     maxWidth: 600,
     width: "100%",
     maxHeight: "90vh",
     overflow: "auto",
-    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.2)"
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+    animation: "slideUp 0.3s ease-out"
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    padding: "20px 24px",
     borderBottom: "1px solid #e2e8f0",
     position: "sticky",
     top: 0,
     background: "white",
-    zIndex: 1
+    zIndex: 1,
+    borderRadius: "20px 20px 0 0"
   },
   closeBtn: {
     background: "none",
@@ -335,18 +375,18 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 8,
-    transition: "background 0.2s"
+    transition: "all 0.2s"
   },
   content: {
-    padding: 20,
+    padding: "20px 24px",
     display: "grid",
     gap: 20
   },
   tutorInfo: {
     background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
     border: "1px solid #bae6fd",
-    borderRadius: 12,
-    padding: 16
+    borderRadius: 14,
+    padding: 18
   },
   section: {
     display: "grid",
@@ -355,44 +395,48 @@ const styles = {
   slotCard: {
     display: "flex",
     alignItems: "center",
-    padding: 12,
+    padding: 14,
     border: "2px solid",
-    borderRadius: 10,
+    borderRadius: 12,
     transition: "all 0.2s"
   },
   timeInput: {
-    padding: "10px 12px",
+    padding: "12px 14px",
     borderRadius: 10,
     border: "1px solid #e2e8f0",
     outline: "none",
     fontSize: 14,
-    fontFamily: "inherit"
+    fontFamily: "inherit",
+    transition: "border-color 0.2s, box-shadow 0.2s"
   },
   textarea: {
     width: "100%",
-    minHeight: 80,
-    padding: "10px 12px",
-    borderRadius: 10,
+    minHeight: 100,
+    padding: "12px 14px",
+    borderRadius: 12,
     border: "1px solid #e2e8f0",
     outline: "none",
     resize: "vertical",
     fontFamily: "inherit",
-    fontSize: 14
+    fontSize: 14,
+    transition: "border-color 0.2s, box-shadow 0.2s"
   },
   actions: {
     display: "flex",
     gap: 12,
     justifyContent: "flex-end",
-    paddingTop: 8
+    paddingTop: 12,
+    borderTop: "1px solid #e2e8f0"
   },
   cancelBtn: {
-    padding: "10px 20px",
+    padding: "12px 24px",
     borderRadius: 10,
     border: "1px solid #e2e8f0",
     background: "white",
     color: "#0f172a",
     fontWeight: 700,
     cursor: "pointer",
-    fontSize: 14
+    fontSize: 14,
+    transition: "all 0.2s"
   }
 };

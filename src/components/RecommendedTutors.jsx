@@ -24,7 +24,9 @@ export default function RecommendedTutors({ tutors }) {
               <div key={t.id} style={styles.card}>
                 <div style={styles.name}>{t.name}</div>
                 <div>Rating: <b>{t.rating}</b></div>
-                {t.course && <div style={styles.course}>{t.course}</div>}
+                {t.courses && t.courses.length > 0 && (
+                  <div style={styles.course}>{t.courses.join(", ")}</div>
+                )}
                 <div style={{ display: "flex", gap: 6 }}>
                   <button
                     onClick={() => setSelectedTutorForProfile(t)}

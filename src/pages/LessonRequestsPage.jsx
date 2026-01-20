@@ -8,6 +8,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 const mockRequestsAsStudent = [
   {
     id: 1,
+    tutorId: "tutor_1",
     tutorName: "Daniel Cohen",
     tutorRating: 4.9,
     course: "Algorithms",
@@ -25,6 +26,7 @@ const mockRequestsAsStudent = [
   },
   {
     id: 2,
+    tutorId: "tutor_2",
     tutorName: "Sarah Klein",
     tutorRating: 5.0,
     course: "Data Structures",
@@ -33,7 +35,7 @@ const mockRequestsAsStudent = [
       startTime: "17:00", 
       endTime: "20:00",
       specificStartTime: "18:00",
-      specificEndTime: "19:30"
+      specificEndTime: "19:00"
     },
     message: "Want to review binary trees",
     status: "approved",
@@ -42,6 +44,7 @@ const mockRequestsAsStudent = [
   },
   {
     id: 3,
+    tutorId: "tutor_3",
     tutorName: "Amir Katz",
     tutorRating: 4.2,
     course: "SQL",
@@ -62,6 +65,7 @@ const mockRequestsAsStudent = [
 const mockRequestsAsTeacher = [
   {
     id: 4,
+    studentId: "student_1",
     studentName: "Yael Cohen",
     course: "Algorithms",
     requestedSlot: { 
@@ -78,6 +82,7 @@ const mockRequestsAsTeacher = [
   },
   {
     id: 5,
+    studentId: "student_2",
     studentName: "Tom Levi",
     course: "SQL",
     requestedSlot: { 
@@ -94,6 +99,7 @@ const mockRequestsAsTeacher = [
   },
   {
     id: 6,
+    studentId: "student_3",
     studentName: "Maya Avraham",
     course: "Data Structures",
     requestedSlot: { 

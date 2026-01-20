@@ -120,32 +120,36 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    background: "rgba(0, 0, 0, 0.5)",
+    background: "rgba(0, 0, 0, 0.6)",
+    backdropFilter: "blur(4px)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1000,
-    padding: 16
+    padding: 16,
+    animation: "fadeIn 0.2s ease-out"
   },
   modal: {
     background: "white",
-    borderRadius: 16,
+    borderRadius: 20,
     maxWidth: 700,
     width: "100%",
     maxHeight: "90vh",
     overflow: "auto",
-    boxShadow: "0 20px 40px rgba(0, 0, 0, 0.2)"
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+    animation: "slideUp 0.3s ease-out"
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    padding: "20px 24px",
     borderBottom: "1px solid #e2e8f0",
     position: "sticky",
     top: 0,
     background: "white",
-    zIndex: 1
+    zIndex: 1,
+    borderRadius: "20px 20px 0 0"
   },
   closeBtn: {
     background: "none",

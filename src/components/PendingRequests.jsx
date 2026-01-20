@@ -141,11 +141,16 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
               <div key={r.id} style={styles.row}>
                 <div style={{ flex: 1 }}>
                   <div style={styles.title}>
-                    {r.student} • {r.lesson}
+                    {r.studentName} • {r.course}
                   </div>
                   <div style={styles.sub}>
                     <div>Lesson scheduled: <b>{lessonDate}</b></div>
                     <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>Requested: {requestDate}</div>
+                    {r.requestedSlot && (
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                        {r.requestedSlot.day} {r.requestedSlot.specificStartTime} - {r.requestedSlot.specificEndTime}
+                      </div>
+                    )}
                   </div>
                   {isPending && timer && (
                     <div style={{

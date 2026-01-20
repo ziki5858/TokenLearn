@@ -1,34 +1,31 @@
 export default function RatingPage() {
-  const lessons = [
-    {
-      id: 1,
-      title: "Data Structures - Trees",
-      student: "Noa Levi",
-      date: "2025-12-01",
-      rating: 4.9,
-      feedback: "Very clear explanations and great practice problems."
-    },
-    {
-      id: 2,
-      title: "SQL Indexing Workshop",
-      student: "Itai Cohen",
-      date: "2025-12-05",
-      rating: 4.7,
-      feedback: "Helped me optimize queries and understand execution plans."
-    },
-    {
-      id: 3,
-      title: "Algorithms - Dynamic Programming",
-      student: "Dana Azulay",
-      date: "2025-12-10",
-      rating: 5.0,
-      feedback: "Excellent pacing and examples."
-    }
-  ];
+  // Mock data - matching API format (GET /api/users/{userId}/ratings)
+  const ratingsData = {
+    averageRating: 4.87,
+    totalRatings: 3,
+    ratings: [
+      {
+        id: 1,
+        ratedBy: "Noa Levi",
+        rating: 4.9,
+        comment: "Very clear explanations and great practice problems."
+      },
+      {
+        id: 2,
+        ratedBy: "Itai Cohen",
+        rating: 4.7,
+        comment: "Helped me optimize queries and understand execution plans."
+      },
+      {
+        id: 3,
+        ratedBy: "Dana Azulay",
+        rating: 5.0,
+        comment: "Excellent pacing and examples."
+      }
+    ]
+  };
 
-  const avgRating = lessons.length
-    ? (lessons.reduce((sum, l) => sum + l.rating, 0) / lessons.length).toFixed(2)
-    : "N/A";
+  const { averageRating, totalRatings, ratings } = ratingsData;
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 16, display: "grid", gap: 16 }}>
@@ -48,7 +45,7 @@ export default function RatingPage() {
       >
         <div>
           <div style={{ fontSize: 14, color: "#475569" }}>Average rating from students</div>
-          <div style={{ fontSize: 30, fontWeight: 800 }}>{avgRating}</div>
+          <div style={{ fontSize: 30, fontWeight: 800 }}>{averageRating.toFixed(2)}</div>
         </div>
         <div style={{
           padding: "10px 14px",
@@ -58,14 +55,14 @@ export default function RatingPage() {
           fontWeight: 700,
           border: "1px solid #0ea5e9"
         }}>
-          Based on {lessons.length} lessons
+          Based on {totalRatings} lessons
         </div>
       </div>
 
       <div style={{ display: "grid", gap: 12 }}>
-        {lessons.map(lesson => (
+        {ratings.map(rating => (
           <div
-            key={lesson.id}
+            key={rating.id}
             style={{
               border: "1px solid #e2e8f0",
               borderRadius: 12,
@@ -77,7 +74,7 @@ export default function RatingPage() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{lesson.title}</div>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>From: {rating.ratedBy}</div>
               <div style={{
                 padding: "6px 10px",
                 borderRadius: 999,
@@ -85,17 +82,14 @@ export default function RatingPage() {
                 color: "#0ea5e9",
                 fontWeight: 700
               }}>
-                {lesson.rating.toFixed(1)} ★
+                {rating.rating.toFixed(1)} ★
               </div>
             </div>
-            <div style={{ color: "#475569", fontSize: 14 }}>
-              Student: {lesson.student} • Date: {lesson.date}
-            </div>
-            <div style={{ color: "#1f2937", fontSize: 14 }}>{lesson.feedback}</div>
+            <div style={{ color: "#1f2937", fontSize: 14 }}>{rating.comment}</div>
           </div>
         ))}
 
-        {lessons.length === 0 && (
+        {ratings.length === 0 && (
           <div style={{
             background: "#f8fafc",
             border: "1px solid #e2e8f0",

@@ -9,9 +9,12 @@ import LinkButton from "../components/LinkButton";
 import googleIcon from "../assets/googleLogo.png";
 
 export default function CreateUserPage() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("student");
   const [secretQuestion, setSecretQuestion] = useState("");
   const [secretAnswer, setSecretAnswer] = useState("");
   const navigate = useNavigate();
@@ -25,7 +28,7 @@ export default function CreateUserPage() {
       return;
     }
 
-    if (!email || !password || !secretQuestion || !secretAnswer) {
+    if (!firstName || !lastName || !email || !password || !secretQuestion || !secretAnswer) {
       addNotification("Please fill out all fields", "error");
       return;
     }
@@ -93,6 +96,22 @@ export default function CreateUserPage() {
 
             <Divider label="or" />
 
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Input
+                label="First Name"
+                type="text"
+                value={firstName}
+                onChange={setFirstName}
+                placeholder="John"
+              />
+              <Input
+                label="Last Name"
+                type="text"
+                value={lastName}
+                onChange={setLastName}
+                placeholder="Doe"
+              />
+            </div>
             <Input
               label="Email"
               type="email"
@@ -128,6 +147,36 @@ export default function CreateUserPage() {
               onChange={setSecretAnswer}
               placeholder="Your answer"
             />
+
+            {/* Role Selection */}
+            <div style={{ display: "grid", gap: 6 }}>
+              <label style={{ fontSize: 14, fontWeight: 600 }}>I want to join as:</label>
+              <div style={{ display: "flex", gap: 16 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="student"
+                    checked={role === "student"}
+                    onChange={(e) => setRole(e.target.value)}
+                  />
+                  <span style={{ fontWeight: role === "student" ? 700 : 400 }}>📚 Student</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="teacher"
+                    checked={role === "teacher"}
+                    onChange={(e) => setRole(e.target.value)}
+                  />
+                  <span style={{ fontWeight: role === "teacher" ? 700 : 400 }}>🎓 Teacher</span>
+                </label>
+              </div>
+              <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
+                You can always change this later in your profile settings.
+              </p>
+            </div>
 
             <Button type="submit">Create Account</Button>
 

@@ -15,44 +15,87 @@ export default function HomePage() {
   const [contactMessage, setContactMessage] = useState("");
   const [contactSubject, setContactSubject] = useState("");
 
+  // Recommended tutors - matching API format (GET /api/tutors/recommended)
   const tutors = [
-    { id: 1, name: "Daniel Cohen", rating: 4.9, course: "Algorithms" },
-    { id: 2, name: "Noa Levi", rating: 4.7, course: "SQL" }
-  ];
-
-  const requests = [
-    {
-      id: 1,
-      student: "Itai",
-      lesson: "SQL practice",
-      requestedAt: "2025-12-22T10:30:00", // When the request was submitted
-      lessonDateTime: "2025-12-23T18:00:00", // Full lesson date and time
-      status: "Pending"
+    { 
+      id: 1, 
+      name: "Daniel Cohen", 
+      rating: 4.9, 
+      courses: ["Algorithms", "Data Structures"],
+      photoUrl: "",
+      availabilityAsTeacher: [
+        { id: 1, day: "Sunday", startTime: "18:00", endTime: "21:00" }
+      ]
     },
-    {
-      id: 2,
-      student: "Sarah",
-      lesson: "Algorithms",
-      requestedAt: "2025-12-22T09:15:00",
-      lessonDateTime: "2025-12-24T16:00:00",
-      status: "Pending"
+    { 
+      id: 2, 
+      name: "Noa Levi", 
+      rating: 4.7, 
+      courses: ["SQL", "Database Design"],
+      photoUrl: "",
+      availabilityAsTeacher: [
+        { id: 1, day: "Monday", startTime: "17:00", endTime: "20:00" }
+      ]
     }
   ];
 
-  const upcomingLessons = [
+  // Pending requests as teacher - matching API format (GET /api/lesson-requests/teacher)
+  const requests = [
     {
       id: 1,
-      role: "Teacher",
-      with: "Noa Levi",
-      topic: "Data Structures",
-      time: "Tomorrow 17:00"
+      studentId: "student_1",
+      studentName: "Itai",
+      course: "SQL practice",
+      requestedSlot: {
+        day: "Monday",
+        startTime: "17:00",
+        endTime: "20:00",
+        specificStartTime: "18:00",
+        specificEndTime: "19:00"
+      },
+      message: "Need help with queries",
+      status: "pending",
+      requestedAt: "2025-12-22T10:30:00",
+      lessonDateTime: "2025-12-23T18:00:00"
     },
     {
       id: 2,
-      role: "Student",
-      with: "Dr. Amir",
+      studentId: "student_2",
+      studentName: "Sarah",
+      course: "Algorithms",
+      requestedSlot: {
+        day: "Tuesday",
+        startTime: "16:00",
+        endTime: "19:00",
+        specificStartTime: "16:00",
+        specificEndTime: "17:00"
+      },
+      message: "Review sorting algorithms",
+      status: "pending",
+      requestedAt: "2025-12-22T09:15:00",
+      lessonDateTime: "2025-12-24T16:00:00"
+    }
+  ];
+
+  // Upcoming lessons - matching API format (GET /api/lessons/upcoming)
+  const upcomingLessons = [
+    {
+      id: 1,
+      role: "teacher",
+      withUserId: "user_1",
+      withUserName: "Noa Levi",
+      topic: "Data Structures",
+      dateTime: "2025-12-24T17:00:00",
+      status: "scheduled"
+    },
+    {
+      id: 2,
+      role: "student",
+      withUserId: "user_2",
+      withUserName: "Dr. Amir",
       topic: "SQL Joins & Indexing",
-      time: "Thursday 19:30"
+      dateTime: "2025-12-26T19:30:00",
+      status: "scheduled"
     }
   ];
 
@@ -334,8 +377,8 @@ export default function HomePage() {
                   <div style={{ display: "grid", gap: 4 }}>
                     <div style={rolePill(lesson.role)}>{lesson.role}</div>
                     <div style={{ fontWeight: 700 }}>{lesson.topic}</div>
-                    <div style={{ fontSize: 13, color: "#475569" }}>With: {lesson.with}</div>
-                    <div style={{ fontSize: 13, color: "#475569" }}>{lesson.time}</div>
+                    <div style={{ fontSize: 13, color: "#475569" }}>With: {lesson.withUserName}</div>
+                    <div style={{ fontSize: 13, color: "#475569" }}>{new Date(lesson.dateTime).toLocaleString()}</div>
                   </div>
                 </div>
               ))}
