@@ -4,11 +4,14 @@ import { useApp } from "../context/useApp";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import ConfirmModal from "../components/ConfirmModal";
+import { useI18n } from "../i18n/useI18n";
 
 export default function LessonPage() {
+  const { language } = useI18n();
+  const isHe = language === "he";
   const { lessonId } = useParams();
   const navigate = useNavigate();
-  const { user, completeLesson, rateLesson, cancelLesson, addNotification } = useApp();
+  const { completeLesson, rateLesson, cancelLesson, addNotification } = useApp();
   
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRatingForm, setShowRatingForm] = useState(false);
@@ -37,11 +40,11 @@ export default function LessonPage() {
 
   const isStudent = lesson.role === "student";
   const otherPersonName = isStudent ? lesson.tutorName : lesson.studentName;
-  const otherPersonRole = isStudent ? "Tutor" : "Student";
+  const otherPersonRole = isStudent ? (isHe ? "מורה" : "Tutor") : (isHe ? "תלמיד/ה" : "Student");
 
   const formatDateTime = (dateStr) => {
     const date = new Date(dateStr);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(isHe ? 'he-IL' : 'en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -53,7 +56,7 @@ export default function LessonPage() {
 
   const handleStartLesson = () => {
     setLesson(prev => ({ ...prev, status: "in-progress" }));
-    addNotification("Lesson started!", "success");
+    addNotification(isHe ? "השיעור התחיל!" : "Lesson started!", "success");
   };
 
   const handleCompleteLesson = async () => {
@@ -86,7 +89,7 @@ export default function LessonPage() {
 
   const handleSubmitRating = async () => {
     if (rating < 1 || rating > 5) {
-      addNotification("Please select a rating between 1 and 5", "error");
+      addNotification(isHe ? "נא לבחור דירוג בין 1 ל-5" : "Please select a rating between 1 and 5", "error");
       return;
     }
 
@@ -106,10 +109,10 @@ export default function LessonPage() {
 
   const getStatusBadge = (status) => {
     const statusStyles = {
-      scheduled: { bg: "#dbeafe", color: "#1e40af", text: "📅 Scheduled" },
-      "in-progress": { bg: "#fef3c7", color: "#92400e", text: "🔴 In Progress" },
-      completed: { bg: "#d1fae5", color: "#065f46", text: "✓ Completed" },
-      cancelled: { bg: "#fee2e2", color: "#991b1b", text: "✕ Cancelled" }
+      scheduled: { bg: "#dbeafe", color: "#1e40af", text: isHe ? "📅 מתוזמן" : "📅 Scheduled" },
+      "in-progress": { bg: "#fef3c7", color: "#92400e", text: isHe ? "🔴 בתהליך" : "🔴 In Progress" },
+      completed: { bg: "#d1fae5", color: "#065f46", text: isHe ? "✓ הושלם" : "✓ Completed" },
+      cancelled: { bg: "#fee2e2", color: "#991b1b", text: isHe ? "✕ בוטל" : "✕ Cancelled" }
     };
     const style = statusStyles[status] || statusStyles.scheduled;
     
@@ -143,7 +146,7 @@ export default function LessonPage() {
           gap: 6
         }}
       >
-        ← Back
+        ← {isHe ? "חזרה" : "Back"}
       </button>
 
       <Card>
@@ -153,7 +156,7 @@ export default function LessonPage() {
             <div>
               <h1 style={{ margin: "0 0 8px 0", fontSize: 24 }}>{lesson.course}</h1>
               <div style={{ color: "#64748b", fontSize: 14 }}>
-                Lesson #{lesson.id}
+                {isHe ? "שיעור" : "Lesson"} #{lesson.id}
               </div>
             </div>
             {getStatusBadge(lesson.status)}
@@ -172,7 +175,7 @@ export default function LessonPage() {
                 <div style={{ fontSize: 18, fontWeight: 700 }}>{otherPersonName}</div>
                 {isStudent && lesson.tutorRating && (
                   <div style={{ fontSize: 14, color: "#f59e0b" }}>
-                    ⭐ {lesson.tutorRating} rating
+                    ⭐ {lesson.tutorRating} {isHe ? "דירוג" : "rating"}
                   </div>
                 )}
               </div>
@@ -181,7 +184,7 @@ export default function LessonPage() {
 
           {/* Date & Time */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>📅 Date & Time</h3>
+            <h3 style={styles.sectionTitle}>📅 {isHe ? "תאריך ושעה" : "Date & Time"}</h3>
             <div style={{ fontSize: 16 }}>
               {formatDateTime(lesson.dateTime)}
             </div>
@@ -193,7 +196,7 @@ export default function LessonPage() {
           {/* Message */}
           {lesson.message && (
             <div style={styles.section}>
-              <h3 style={styles.sectionTitle}>💬 Message</h3>
+              <h3 style={styles.sectionTitle}>💬 {isHe ? "הודעה" : "Message"}</h3>
               <div style={{
                 padding: 16,
                 background: "#f8fafc",
@@ -211,13 +214,13 @@ export default function LessonPage() {
           {lesson.status === "scheduled" && (
             <div style={styles.actions}>
               <Button onClick={handleStartLesson}>
-                🎬 Start Lesson
+                🎬 {isHe ? "התחלת שיעור" : "Start Lesson"}
               </Button>
               <button 
                 onClick={() => setShowCancelModal(true)}
                 style={styles.dangerBtn}
               >
-                Cancel Lesson
+                {isHe ? "ביטול שיעור" : "Cancel Lesson"}
               </button>
             </div>
           )}
@@ -225,7 +228,7 @@ export default function LessonPage() {
           {lesson.status === "in-progress" && (
             <div style={styles.actions}>
               <Button onClick={handleCompleteLesson} disabled={isSubmitting}>
-                {isSubmitting ? "Completing..." : "✓ Complete Lesson"}
+                {isSubmitting ? (isHe ? "מסיים/ת..." : "Completing...") : (isHe ? "✓ סיום שיעור" : "✓ Complete Lesson")}
               </Button>
             </div>
           )}
@@ -233,7 +236,7 @@ export default function LessonPage() {
           {lesson.status === "completed" && isStudent && !lesson.ratedAt && !showRatingForm && (
             <div style={styles.actions}>
               <Button onClick={() => setShowRatingForm(true)}>
-                ⭐ Rate This Lesson
+                ⭐ {isHe ? "דירוג השיעור" : "Rate This Lesson"}
               </Button>
             </div>
           )}
@@ -241,11 +244,11 @@ export default function LessonPage() {
           {/* Rating Form */}
           {showRatingForm && (
             <div style={styles.ratingSection}>
-              <h3 style={styles.sectionTitle}>⭐ Rate Your Lesson</h3>
+              <h3 style={styles.sectionTitle}>⭐ {isHe ? "דרג/י את השיעור" : "Rate Your Lesson"}</h3>
               
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-                  How was your experience with {lesson.tutorName}?
+                  {isHe ? `איך הייתה החוויה שלך עם ${lesson.tutorName}?` : `How was your experience with ${lesson.tutorName}?`}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   {[1, 2, 3, 4, 5].map(star => (
@@ -271,12 +274,12 @@ export default function LessonPage() {
 
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>
-                  Leave a comment (optional)
+                  {isHe ? "השאר/י תגובה (אופציונלי)" : "Leave a comment (optional)"}
                 </label>
                 <textarea
                   value={comment}
                   onChange={e => setComment(e.target.value)}
-                  placeholder="Share your experience..."
+                  placeholder={isHe ? "שתף/י את החוויה שלך..." : "Share your experience..."}
                   style={styles.textarea}
                   rows={3}
                 />
@@ -284,13 +287,13 @@ export default function LessonPage() {
 
               <div style={{ display: "flex", gap: 12 }}>
                 <Button onClick={handleSubmitRating} disabled={isSubmitting}>
-                  {isSubmitting ? "Submitting..." : "Submit Rating"}
+                  {isSubmitting ? (isHe ? "שולח/ת..." : "Submitting...") : (isHe ? "שליחת דירוג" : "Submit Rating")}
                 </Button>
                 <button 
                   onClick={() => setShowRatingForm(false)}
                   style={styles.cancelBtn}
                 >
-                  Skip
+                  {isHe ? "דילוג" : "Skip"}
                 </button>
               </div>
             </div>
@@ -299,7 +302,7 @@ export default function LessonPage() {
           {/* Show submitted rating */}
           {lesson.myRating && (
             <div style={styles.ratingSection}>
-              <h3 style={styles.sectionTitle}>Your Rating</h3>
+              <h3 style={styles.sectionTitle}>{isHe ? "הדירוג שלך" : "Your Rating"}</h3>
               <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
                 {[1, 2, 3, 4, 5].map(star => (
                   <span key={star} style={{ fontSize: 24, opacity: star <= lesson.myRating.rating ? 1 : 0.3 }}>
@@ -325,7 +328,7 @@ export default function LessonPage() {
               color: "#991b1b",
               textAlign: "center"
             }}>
-              This lesson has been cancelled. Any tokens have been refunded.
+              {isHe ? "השיעור הזה בוטל. כל הטוקנים הוחזרו." : "This lesson has been cancelled. Any tokens have been refunded."}
             </div>
           )}
         </div>
@@ -336,10 +339,10 @@ export default function LessonPage() {
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
         onConfirm={handleCancelLesson}
-        title="Cancel Lesson"
-        message="Are you sure you want to cancel this lesson? You will receive a token refund."
-        confirmText="Yes, Cancel"
-        cancelText="Keep Lesson"
+        title={isHe ? "ביטול שיעור" : "Cancel Lesson"}
+        message={isHe ? "בטוח/ה שברצונך לבטל את השיעור? יבוצע החזר טוקנים." : "Are you sure you want to cancel this lesson? You will receive a token refund."}
+        confirmText={isHe ? "כן, לבטל" : "Yes, Cancel"}
+        cancelText={isHe ? "להשאיר שיעור" : "Keep Lesson"}
         confirmStyle="danger"
       />
     </div>
