@@ -1,18 +1,26 @@
+import { useEffect, useState } from 'react';
+import { useApp } from '../context/useApp';
 import { useI18n } from "../i18n/useI18n";
 
 export default function RatingPage() {
   const { language } = useI18n();
   const isHe = language === 'he';
+  const { user, getUserRatings } = useApp();
+  const [ratingsData, setRatingsData] = useState({ averageRating: 0, totalRatings: 0, ratings: [] });
 
-  const ratingsData = {
-    averageRating: 4.87,
-    totalRatings: 3,
-    ratings: [
-      { id: 1, ratedBy: "Noa Levi", rating: 4.9, comment: isHe ? "הסברים ברורים מאוד ותרגול מצוין." : "Very clear explanations and great practice problems." },
-      { id: 2, ratedBy: "Itai Cohen", rating: 4.7, comment: isHe ? "עזר לי לייעל שאילתות ולהבין תוכניות הרצה." : "Helped me optimize queries and understand execution plans." },
-      { id: 3, ratedBy: "Dana Azulay", rating: 5.0, comment: isHe ? "קצב מצוין ודוגמאות נהדרות." : "Excellent pacing and examples." }
-    ]
-  };
+  useEffect(() => {
+    let isMounted = true;
+    const loadRatings = async () => {
+      const result = await getUserRatings(user.id);
+      if (result.success && isMounted) {
+        setRatingsData(result.data);
+      }
+    };
+    loadRatings();
+    return () => {
+      isMounted = false;
+    };
+  }, [getUserRatings, user.id]);
 
   const { averageRating, totalRatings, ratings } = ratingsData;
 

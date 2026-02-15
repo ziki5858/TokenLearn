@@ -13,7 +13,9 @@ export const translations = {
       findTutor: 'Find Tutor',
       lessonRequests: 'Lesson Requests',
       personalArea: 'Personal Area',
-      rating: 'Rating'
+      rating: 'Rating',
+      tokenHistory: 'Token History',
+      lessonHistory: 'Lesson History'
     },
     headerTopBar: {
       contactUs: 'Contact Us',
@@ -90,7 +92,9 @@ export const translations = {
       findTutor: 'חפש/י מורה',
       lessonRequests: 'בקשות שיעור',
       personalArea: 'אזור אישי',
-      rating: 'דירוג'
+      rating: 'דירוג',
+      tokenHistory: 'היסטוריית טוקנים',
+      lessonHistory: 'היסטוריית שיעורים'
     },
     headerTopBar: {
       contactUs: 'צור קשר',

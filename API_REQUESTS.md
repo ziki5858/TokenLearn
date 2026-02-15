@@ -20,8 +20,7 @@
       "id": "user_id",
       "email": "user@example.com",
       "firstName": "John",
-      "lastName": "Doe",
-      "role": "student" | "teacher"
+      "lastName": "Doe"
     }
   }
   ```
@@ -36,7 +35,6 @@
     "password": "password123",
     "firstName": "John",
     "lastName": "Doe",
-    "role": "student" | "teacher",
     "secretQuestion": "What is your pet's name?",
     "secretAnswer": "Fluffy"
   }
@@ -167,7 +165,6 @@
     "lastName": "Doe",
     "phone": "0501234567",
     "photoUrl": "https://...",
-    "role": "student" | "teacher",
     "isAdmin": false,
     "tokenBalance": 50,
     "tokenBalances": {
@@ -290,6 +287,8 @@
 > - `available` = יתרה זמינה לשימוש מיידי.
 > - `locked` = יתרה תפוסה בבקשות/שיעורים מאושרים שטרם הושלמו.
 > - `futureTutorEarnings` = טוקנים שהמשתמש צפוי לקבל כמורה עבור שיעורים שנקבעו אך טרם הושלמו.
+
+> הערת תפקידים: כל משתמש במערכת יכול לפעול גם כתלמיד/ה וגם כמורה. לכן אין שדה `role` ברמת המשתמש.
 
 ### 3.2 Buy Tokens (רכישת טוקנים)
 - **Method:** POST

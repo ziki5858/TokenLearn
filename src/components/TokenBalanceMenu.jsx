@@ -33,7 +33,19 @@ export default function TokenBalanceMenu({ tokenSummary }) {
         onClick={() => setIsPinnedOpen((prev) => !prev)}
         aria-expanded={isOpen}
       >
-        🪙 {t('headerTopBar.tokenBalance')}
+        <span style={styles.triggerContent}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            role="img"
+            aria-label={t('headerTopBar.tokenBalance')}
+          >
+            <circle cx="12" cy="12" r="9" fill="#facc15" stroke="#ca8a04" strokeWidth="1.8" />
+            <circle cx="12" cy="12" r="5" fill="#fde68a" stroke="#ca8a04" strokeWidth="1.2" />
+          </svg>
+          <span>{t('headerTopBar.tokenBalance')}</span>
+        </span>
       </button>
 
       {isOpen && (
@@ -74,6 +86,11 @@ const styles = {
     fontWeight: 700,
     cursor: 'pointer',
     whiteSpace: 'nowrap'
+  },
+  triggerContent: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6
   },
   dropdown: {
     position: 'absolute',

@@ -16,7 +16,6 @@ export default function CreateUserPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('student');
   const [secretQuestion, setSecretQuestion] = useState('');
   const [secretAnswer, setSecretAnswer] = useState('');
   const navigate = useNavigate();
@@ -79,21 +78,6 @@ export default function CreateUserPage() {
             <Input label={t('auth.confirmPassword')} type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" />
             <Input label={t('auth.secretQuestion')} type="text" value={secretQuestion} onChange={setSecretQuestion} placeholder="e.g., What is your pet's name?" />
             <Input label={t('auth.answer')} type="text" value={secretAnswer} onChange={setSecretAnswer} placeholder="Your answer" />
-
-            <div style={{ display: 'grid', gap: 6 }}>
-              <label style={{ fontSize: 14, fontWeight: 600 }}>{t('auth.joinAs')}</label>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="radio" name="role" value="student" checked={role === 'student'} onChange={(e) => setRole(e.target.value)} />
-                  <span style={{ fontWeight: role === 'student' ? 700 : 400 }}>📚 {t('auth.student')}</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="radio" name="role" value="teacher" checked={role === 'teacher'} onChange={(e) => setRole(e.target.value)} />
-                  <span style={{ fontWeight: role === 'teacher' ? 700 : 400 }}>🎓 {t('auth.teacher')}</span>
-                </label>
-              </div>
-              <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>{t('auth.roleHint')}</p>
-            </div>
 
             <Button type="submit">{t('auth.createAccount')}</Button>
 

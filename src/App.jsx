@@ -11,6 +11,8 @@ import RatingPage from './pages/RatingPage';
 import FindTutorPage from './pages/FindTutorPage';
 import LessonRequestsPage from './pages/LessonRequestsPage';
 import AdminPage from './pages/AdminPage';
+import TokenHistoryPage from './pages/TokenHistoryPage';
+import LessonHistoryPage from './pages/LessonHistoryPage';
 import AppLayout from './layouts/AppLayout';
 import { I18nProvider } from './i18n/I18nContext';
 
@@ -31,6 +33,8 @@ function App() {
           <Route path="/lesson/:id" element={<LessonPage />} />
           <Route path="/me" element={<PersonalAreaPage />} />
           <Route path="/rating" element={<RatingPage />} />
+          <Route path="/token-history" element={<TokenHistoryPage />} />
+          <Route path="/lesson-history" element={<LessonHistoryPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Route>
 

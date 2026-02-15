@@ -48,6 +48,12 @@ export default function AppLayout() {
             <Link to="/rating" style={getNavLinkStyle('/rating')}>
               ⭐ {t('nav.rating')}
             </Link>
+            <Link to="/token-history" style={getNavLinkStyle('/token-history')}>
+              🪙 {t('nav.tokenHistory')}
+            </Link>
+            <Link to="/lesson-history" style={getNavLinkStyle('/lesson-history')}>
+              📚 {t('nav.lessonHistory')}
+            </Link>
           </nav>
 
           <div style={styles.controls}>

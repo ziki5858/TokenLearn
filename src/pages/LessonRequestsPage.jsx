@@ -5,131 +5,39 @@ import ConfirmModal from "../components/ConfirmModal";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useI18n } from "../i18n/useI18n";
 
-// Mock data - will come from backend
-const mockRequestsAsStudent = [
-  {
-    id: 1,
-    tutorId: "tutor_1",
-    tutorName: "Daniel Cohen",
-    tutorRating: 4.9,
-    course: "Algorithms",
-    requestedSlot: { 
-      day: "Sunday", 
-      startTime: "18:00", 
-      endTime: "21:00",
-      specificStartTime: "19:00",
-      specificEndTime: "20:00"
-    },
-    message: "I need help with dynamic programming",
-    status: "pending", // pending, approved, rejected
-    requestedAt: "2025-12-20T10:30:00",
-    lessonDateTime: "2025-12-22T19:00:00"
-  },
-  {
-    id: 2,
-    tutorId: "tutor_2",
-    tutorName: "Sarah Klein",
-    tutorRating: 5.0,
-    course: "Data Structures",
-    requestedSlot: { 
-      day: "Wednesday", 
-      startTime: "17:00", 
-      endTime: "20:00",
-      specificStartTime: "18:00",
-      specificEndTime: "19:00"
-    },
-    message: "Want to review binary trees",
-    status: "approved",
-    requestedAt: "2025-12-19T14:20:00",
-    lessonDateTime: "2025-12-25T18:00:00"
-  },
-  {
-    id: 3,
-    tutorId: "tutor_3",
-    tutorName: "Amir Katz",
-    tutorRating: 4.2,
-    course: "SQL",
-    requestedSlot: { 
-      day: "Monday", 
-      startTime: "19:00", 
-      endTime: "22:00",
-      specificStartTime: "20:00",
-      specificEndTime: "21:00"
-    },
-    message: "",
-    status: "rejected",
-    requestedAt: "2025-12-18T09:15:00",
-    lessonDateTime: "2025-12-23T20:00:00"
-  }
-];
-
-const mockRequestsAsTeacher = [
-  {
-    id: 4,
-    studentId: "student_1",
-    studentName: "Yael Cohen",
-    course: "Algorithms",
-    requestedSlot: { 
-      day: "Sunday", 
-      startTime: "18:00", 
-      endTime: "21:00",
-      specificStartTime: "19:00",
-      specificEndTime: "20:00"
-    },
-    message: "I'm struggling with graph algorithms, especially BFS and DFS",
-    status: "pending",
-    requestedAt: "2025-12-21T16:45:00",
-    lessonDateTime: "2025-12-23T19:00:00"
-  },
-  {
-    id: 5,
-    studentId: "student_2",
-    studentName: "Tom Levi",
-    course: "SQL",
-    requestedSlot: { 
-      day: "Tuesday", 
-      startTime: "20:00", 
-      endTime: "23:00",
-      specificStartTime: "20:30",
-      specificEndTime: "21:30"
-    },
-    message: "Need help with complex joins and subqueries",
-    status: "pending",
-    requestedAt: "2025-12-21T11:20:00",
-    lessonDateTime: "2025-12-24T20:30:00"
-  },
-  {
-    id: 6,
-    studentId: "student_3",
-    studentName: "Maya Avraham",
-    course: "Data Structures",
-    requestedSlot: { 
-      day: "Thursday", 
-      startTime: "18:00", 
-      endTime: "21:00",
-      specificStartTime: "18:30",
-      specificEndTime: "19:30"
-    },
-    message: "",
-    status: "pending",
-    requestedAt: "2025-12-20T15:10:00",
-    lessonDateTime: "2025-12-26T18:30:00"
-  }
-];
-
 export default function LessonRequestsPage() {
   const { language } = useI18n();
   const isHe = language === "he";
-  const { approveLessonRequest, rejectLessonRequest, cancelLessonRequest, addNotification, loading } = useApp();
+  const { approveLessonRequest, rejectLessonRequest, cancelLessonRequest, getLessonRequestsAsStudent, getLessonRequestsAsTeacher, addNotification, loading } = useApp();
   const [activeTab, setActiveTab] = useState("student"); // student or teacher
-  const [requestsAsStudent, setRequestsAsStudent] = useState(mockRequestsAsStudent);
-  const [requestsAsTeacher, setRequestsAsTeacher] = useState(mockRequestsAsTeacher);
+  const [requestsAsStudent, setRequestsAsStudent] = useState([]);
+  const [requestsAsTeacher, setRequestsAsTeacher] = useState([]);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [selectedRequestForRejection, setSelectedRequestForRejection] = useState(null);
   const [rejectionMessage, setRejectionMessage] = useState("");
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedRequestForCancel, setSelectedRequestForCancel] = useState(null);
   const [timers, setTimers] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadRequests = async () => {
+      const [studentResult, teacherResult] = await Promise.all([
+        getLessonRequestsAsStudent(),
+        getLessonRequestsAsTeacher()
+      ]);
+
+      if (!isMounted) return;
+
+      setRequestsAsStudent(studentResult.success ? (studentResult.data || []) : []);
+      setRequestsAsTeacher(teacherResult.success ? (teacherResult.data || []) : []);
+    };
+
+    loadRequests();
+    return () => {
+      isMounted = false;
+    };
+  }, [getLessonRequestsAsStudent, getLessonRequestsAsTeacher]);
 
   // Calculate time remaining until approval deadline (6 hours before lesson)
   const calculateTimeRemaining = useCallback((lessonDateTime) => {
