@@ -294,7 +294,7 @@ export function AppProvider({ children }) {
   };
 
   // Authentication operations (stubs for future API integration)
-  const login = async (email, password) => {
+  const login = async (email) => {
     return apiCall(async () => {
       // Here: POST /api/auth/login
       console.log('Logging in:', { email, hasPassword: Boolean(password) });
@@ -330,7 +330,7 @@ export function AppProvider({ children }) {
     });
   };
 
-  const verifySecretAnswer = async (email, secretAnswer) => {
+  const verifySecretAnswer = async (email) => {
     return apiCall(async () => {
       // Here: POST /api/auth/verify-secret-answer
       console.log('Verifying secret answer for:', { email, hasSecretAnswer: Boolean(secretAnswer) });
@@ -338,7 +338,7 @@ export function AppProvider({ children }) {
     });
   };
 
-  const resetPassword = async (email, resetToken, newPassword) => {
+  const resetPassword = async (email) => {
     return apiCall(async () => {
       // Here: POST /api/auth/reset-password
       console.log('Resetting password for:', { email, hasResetToken: Boolean(resetToken), hasNewPassword: Boolean(newPassword) });
