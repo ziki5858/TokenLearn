@@ -45,7 +45,7 @@ export default function AdminPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-      <HeaderTopBar tokenBalance={user.tokenBalance} tutorRating={user.tutorRating} />
+      <HeaderTopBar tutorRating={user.tutorRating} />
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: 16 }}>
         <h1 style={{ marginTop: 0 }}>{isHe ? "לוח ניהול" : "Admin Dashboard"}</h1>
 

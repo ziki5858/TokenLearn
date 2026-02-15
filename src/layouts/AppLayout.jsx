@@ -1,10 +1,12 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useI18n } from '../i18n/useI18n';
+import { useApp } from '../context/useApp';
 
 export default function AppLayout() {
   const location = useLocation();
   const { t, isRTL } = useI18n();
+  const { tokenSummary } = useApp();
 
   const isActive = (path) => location.pathname === path;
 
@@ -63,6 +65,18 @@ export default function AppLayout() {
           <div style={{ marginInlineStart: 'auto' }}>
             <LanguageSwitcher />
           </div>
+          <div style={tokenPillStyle}>
+            {t('headerTopBar.totalBalance')}: <b>{tokenSummary.total}</b>
+          </div>
+          <div style={tokenPillStyle}>
+            {t('headerTopBar.availableBalance')}: <b>{tokenSummary.available}</b>
+          </div>
+          <div style={tokenPillStyle}>
+            {t('headerTopBar.lockedBalance')}: <b>{tokenSummary.locked}</b>
+          </div>
+          <div style={tokenPillStyle}>
+            {t('headerTopBar.futureTutorEarnings')}: <b>{tokenSummary.futureTutorEarnings}</b>
+          </div>
         </nav>
       </header>
       <main
@@ -77,3 +91,12 @@ export default function AppLayout() {
     </div>
   );
 }
+
+const tokenPillStyle = {
+  padding: '8px 12px',
+  borderRadius: 999,
+  border: '1px solid #e2e8f0',
+  background: '#f8fafc',
+  fontSize: 12,
+  color: '#334155'
+};

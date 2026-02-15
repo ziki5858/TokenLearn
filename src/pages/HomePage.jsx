@@ -205,7 +205,6 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: "100vh" }}>
       <HeaderTopBar
-        tokenBalance={user.tokenBalance}
         tutorRating={user.tutorRating}
         onContactUs={() => {
           setContactMessage("");
@@ -326,7 +325,7 @@ export default function HomePage() {
                       addNotification(isHe ? "נא למלא גם נושא וגם הודעה" : "Please fill in both subject and message", "error");
                       return;
                     }
-                    const result = await contactAdmin(contactMessage, contactSubject);
+                    const result = await contactAdmin(contactSubject, contactMessage);
                     if (result.success) {
                       setContactModalOpen(false);
                     }

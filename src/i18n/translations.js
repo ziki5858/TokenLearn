@@ -19,7 +19,11 @@ export const translations = {
       contactUs: 'Contact Us',
       adminPanel: 'Admin Panel',
       tokenBalance: 'Token Balance',
-      tutorRating: 'Tutor Rating'
+      tutorRating: 'Tutor Rating',
+      totalBalance: 'Total',
+      availableBalance: 'Available',
+      lockedBalance: 'Locked',
+      futureTutorEarnings: 'Future as Tutor'
     },
     auth: {
       login: 'Login',
@@ -92,7 +96,11 @@ export const translations = {
       contactUs: 'צור קשר',
       adminPanel: 'פאנל ניהול',
       tokenBalance: 'יתרת טוקנים',
-      tutorRating: 'דירוג מורה'
+      tutorRating: 'דירוג מורה',
+      totalBalance: 'סה"כ',
+      availableBalance: 'זמינה',
+      lockedBalance: 'תפוסה',
+      futureTutorEarnings: 'עתידית כמורה'
     },
     auth: {
       login: 'התחברות',

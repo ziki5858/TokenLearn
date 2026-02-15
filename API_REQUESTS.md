@@ -170,6 +170,12 @@
     "role": "student" | "teacher",
     "isAdmin": false,
     "tokenBalance": 50,
+    "tokenBalances": {
+      "total": 50,
+      "available": 48,
+      "locked": 2,
+      "futureTutorEarnings": 3
+    },
     "tutorRating": 4.8,
     "totalLessonsAsTutor": 25,
     "coursesAsTeacher": [
@@ -271,9 +277,19 @@
   ```json
   {
     "balance": 50,
-    "pendingTransfers": 0
+    "total": 50,
+    "available": 48,
+    "locked": 2,
+    "futureTutorEarnings": 3,
+    "pendingTransfers": 2
   }
   ```
+
+> הערה: `total = available + locked`.
+>
+> - `available` = יתרה זמינה לשימוש מיידי.
+> - `locked` = יתרה תפוסה בבקשות/שיעורים מאושרים שטרם הושלמו.
+> - `futureTutorEarnings` = טוקנים שהמשתמש צפוי לקבל כמורה עבור שיעורים שנקבעו אך טרם הושלמו.
 
 ### 3.2 Buy Tokens (רכישת טוקנים)
 - **Method:** POST
@@ -455,6 +471,7 @@
   {
     "tutorId": "tutor_id",
     "course": "Algorithms",
+    "tokenCost": 1,
     "requestedSlot": {
       "day": "Sunday",
       "startTime": "18:00",
@@ -465,7 +482,19 @@
     "message": "I need help with dynamic programming"
   }
   ```
-- **Response:** Created lesson request object
+- **Response:**
+  ```json
+  {
+    "requestId": 123,
+    "status": "pending",
+    "tokenCost": 1,
+    "tokenMovement": {
+      "fromAvailableToLocked": 1
+    }
+  }
+  ```
+
+> ביצירת בקשת שיעור, עלות השיעור יורדת מהיתרה הזמינה (`available`) ונכנסת ליתרה תפוסה (`locked`) עד סיום/ביטול.
 
 ### 5.4 Approve Lesson Request (אישור בקשת שיעור)
 - **Method:** POST
@@ -475,9 +504,13 @@
   ```json
   {
     "requestId": 4,
-    "status": "approved"
+    "status": "approved",
+    "lessonId": 901
   }
   ```
+
+> באישור הבקשה הכסף נשאר ב־`locked` של התלמיד עד סיום שיעור בפועל.
+> למורה ניתן להחזיר גם `futureTutorEarnings` מעודכן.
 
 ### 5.5 Reject Lesson Request (דחיית בקשת שיעור)
 - **Method:** POST
@@ -494,7 +527,10 @@
   {
     "requestId": 4,
     "status": "rejected",
-    "rejectionReason": "I'm not available at that time"
+    "rejectionReason": "I'm not available at that time",
+    "tokenMovement": {
+      "fromLockedToAvailable": 1
+    }
   }
   ```
 
@@ -505,7 +541,10 @@
 - **Response:**
   ```json
   {
-    "message": "Lesson request cancelled"
+    "message": "Lesson request cancelled",
+    "tokenMovement": {
+      "fromLockedToAvailable": 1
+    }
   }
   ```
 
@@ -575,13 +614,14 @@
 - **Response:**
   ```json
   [
-    {
+  {
       "id": 1,
       "role": "teacher",
       "withUserId": "user_id",
       "withUserName": "Noa Levi",
       "topic": "Data Structures",
       "dateTime": "2025-12-23T17:00:00",
+      "tokenCost": 1,
       "status": "scheduled"
     }
   ]
@@ -602,9 +642,15 @@
   {
     "id": 1,
     "status": "completed",
-    "completedAt": "2025-12-23T18:00:00"
+    "completedAt": "2025-12-23T18:00:00",
+    "tokenSettlement": {
+      "studentLockedDebited": 1,
+      "tutorAvailableCredited": 1
+    }
   }
   ```
+
+> בסיום שיעור: הטוקן יורד מה־`locked` של התלמיד ומועבר ליתרה הזמינה של המורה.
 
 ### 7.4 Cancel Lesson (ביטול שיעור)
 - **Method:** DELETE
@@ -622,7 +668,10 @@
     "id": 1,
     "status": "cancelled",
     "cancelledAt": "2025-12-22T10:00:00",
-    "refundedTokens": 1
+    "refundedTokens": 1,
+    "tokenSettlement": {
+      "lockedReleasedToStudentAvailable": 1
+    }
   }
   ```
 
@@ -861,3 +910,72 @@
 | 9.6  | Admin | `/api/admin/tutors/{tutorId}/unblock` | POST |
 | 9.7  | Admin | `/api/admin/lessons` | GET |
 | 9.8  | Admin | `/api/admin/users/{userId}/tokens` | PUT |
+
+---
+
+## ✅ Frontend Integration Accuracy (מיפוי מדויק לקריאות מהקוד)
+
+> כל קריאות ה־API ב־frontend עטופות בפונקציית `apiCall` ומוחזרות במבנה אחיד:
+>
+> ```json
+> {
+>   "success": true,
+>   "data": { /* endpoint payload */ }
+> }
+> ```
+>
+> לכן בקומפוננטות נבדק בעיקר `result.success`, והשדות העסקיים נמצאים תחת `result.data`.
+
+### קריאות עם פרמטרים מדויקים לפי הקוד
+
+- `createLessonRequest(requestData)` → `POST /api/lesson-requests`
+  - Required body from UI booking flow:
+    - `tutorId`, `tutorName`, `course`, `tokenCost`, `requestedSlot`, `message`
+  - Frontend handling: בודק `result.success`; משם מתבצעת סגירת modal ועדכון מצב UI.
+
+- `approveLessonRequest(requestId)` → `POST /api/lesson-requests/{requestId}/approve`
+  - Frontend handling: בודק `result.success` ומציג הודעה.
+
+- `rejectLessonRequest(requestId, reason)` → `POST /api/lesson-requests/{requestId}/reject`
+  - Body expected by frontend: `rejectionMessage` / `reason` (הקוד מעביר `reason` כפרמטר).
+  - Frontend handling: בודק `result.success`.
+
+- `cancelLessonRequest(requestId)` → `DELETE /api/lesson-requests/{requestId}`
+  - Frontend handling: בודק `result.success`.
+
+- `completeLesson(lessonId, metadata)` → `PUT /api/lessons/{lessonId}/complete`
+  - Metadata used in frontend logic: `role`, `tokenCost`.
+  - Frontend handling: בודק `result.success`; מעביר את ה־lesson ל־`completed`.
+
+- `cancelLesson(lessonId, metadata)` → `DELETE /api/lessons/{lessonId}`
+  - Metadata used in frontend logic: `role`, `tokenCost`.
+  - Frontend handling: בודק `result.success`; מעביר את ה־lesson ל־`cancelled`.
+
+- `rateLesson(lessonId, rating, comment)` → `POST /api/lessons/{lessonId}/rate`
+  - Frontend handling: בודק `result.success`.
+
+- `contactAdmin(subject, message)` → `POST /api/admin/contact`
+  - Body order מדויק לפי הקוד: `subject`, `message`.
+  - Frontend handling: בודק `result.success`.
+
+- `login(email, password)` → `POST /api/auth/login`
+- `verifySecretAnswer(email, secretAnswer)` → `POST /api/auth/verify-secret-answer`
+- `resetPassword(email, resetToken, newPassword)` → `POST /api/auth/reset-password`
+
+### חוזה יתרות הטוקנים לפי הקוד
+
+ה־frontend משתמש במבנה:
+
+```json
+{
+  "total": 50,
+  "available": 48,
+  "locked": 2,
+  "futureTutorEarnings": 3
+}
+```
+
+- `total = available + locked`
+- בעת יצירת בקשה: `available -> locked`
+- בעת דחייה/ביטול: `locked -> available`
+- בסיום שיעור: חיוב `locked` לתלמיד וזיכוי `available` למורה (וירידה ב־`futureTutorEarnings` למורה)

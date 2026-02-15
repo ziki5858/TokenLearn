@@ -10,7 +10,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
   const isHe = language === "he";
   const dayMap = { Sunday: 'ראשון', Monday: 'שני', Tuesday: 'שלישי', Wednesday: 'רביעי', Thursday: 'חמישי', Friday: 'שישי', Saturday: 'שבת' };
   const localizeDay = (day) => (isHe ? (dayMap[day] || day) : day);
-  const { createLessonRequest, addNotification } = useApp();
+  const { createLessonRequest, addNotification, tokenSummary } = useApp();
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [specificStartTime, setSpecificStartTime] = useState("");
@@ -88,7 +88,9 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
     // API expects: tutorId, course, requestedSlot, message
     const requestData = {
       tutorId: tutor.id,
+      tutorName: tutor.name,
       course: selectedCourse,
+      tokenCost: 1,
       requestedSlot: {
         day: selectedSlot.day,
         startTime: selectedSlot.startTime,
@@ -124,6 +126,11 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
               <div style={{ fontSize: 18, fontWeight: 700 }}>{tutor.name}</div>
               <div style={{ fontSize: 14, color: "#64748b" }}>
                 {isHe ? "דירוג" : "Rating"}: ⭐ {tutor.rating} • {(tutor.courses?.join(", ")) || (isHe ? "אין קורסים זמינים" : "No courses listed")}
+              </div>
+              <div style={{ fontSize: 12, color: "#334155" }}>
+                {isHe
+                  ? `עלות שיעור: 1 טוקן • יתרה זמינה: ${tokenSummary?.available ?? 0}`
+                  : `Lesson cost: 1 token • Available balance: ${tokenSummary?.available ?? 0}`}
               </div>
             </div>
           </div>

@@ -9,7 +9,7 @@ import { useI18n } from "../i18n/useI18n";
 export default function LessonPage() {
   const { language } = useI18n();
   const isHe = language === "he";
-  const { lessonId } = useParams();
+  const { id: lessonId } = useParams();
   const navigate = useNavigate();
   const { completeLesson, rateLesson, cancelLesson, addNotification } = useApp();
   
@@ -33,6 +33,7 @@ export default function LessonPage() {
     endTime: "2025-12-24T19:00:00",
     status: "scheduled", // scheduled, in-progress, completed, cancelled
     message: "I need help understanding memoization and tabulation approaches.",
+    tokenCost: 1,
     completedAt: null,
     ratedAt: null,
     myRating: null
@@ -61,7 +62,10 @@ export default function LessonPage() {
 
   const handleCompleteLesson = async () => {
     setIsSubmitting(true);
-    const result = await completeLesson(lesson.id);
+    const result = await completeLesson(lesson.id, {
+      role: lesson.role,
+      tokenCost: lesson.tokenCost
+    });
     setIsSubmitting(false);
     
     if (result.success) {
@@ -78,7 +82,10 @@ export default function LessonPage() {
 
   const handleCancelLesson = async () => {
     setIsSubmitting(true);
-    const result = await cancelLesson(lesson.id);
+    const result = await cancelLesson(lesson.id, {
+      role: lesson.role,
+      tokenCost: lesson.tokenCost
+    });
     setIsSubmitting(false);
     setShowCancelModal(false);
     

@@ -4,9 +4,9 @@ import { useApp } from '../context/useApp';
 import { useI18n } from '../i18n/useI18n';
 import LanguageSwitcher from './LanguageSwitcher';
 
-export default function HeaderTopBar({ tokenBalance = 0, tutorRating = null, onContactUs }) {
+export default function HeaderTopBar({ tutorRating = null, onContactUs }) {
   const navigate = useNavigate();
-  const { user } = useApp();
+  const { user, tokenSummary } = useApp();
   const { t } = useI18n();
 
   return (
@@ -24,7 +24,19 @@ export default function HeaderTopBar({ tokenBalance = 0, tutorRating = null, onC
       <div style={styles.right}>
         <LanguageSwitcher />
         <div style={styles.pill}>
-          {t('headerTopBar.tokenBalance')}: <b>{tokenBalance}</b>
+          {t('headerTopBar.totalBalance')}: <b>{tokenSummary.total}</b>
+        </div>
+
+        <div style={styles.pill}>
+          {t('headerTopBar.availableBalance')}: <b>{tokenSummary.available}</b>
+        </div>
+
+        <div style={styles.pill}>
+          {t('headerTopBar.lockedBalance')}: <b>{tokenSummary.locked}</b>
+        </div>
+
+        <div style={styles.pill}>
+          {t('headerTopBar.futureTutorEarnings')}: <b>{tokenSummary.futureTutorEarnings}</b>
         </div>
 
         <div style={styles.pill}>
