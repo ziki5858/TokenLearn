@@ -12,11 +12,13 @@ import FindTutorPage from './pages/FindTutorPage';
 import LessonRequestsPage from './pages/LessonRequestsPage';
 import AdminPage from './pages/AdminPage';
 import AppLayout from './layouts/AppLayout';
+import { I18nProvider } from './i18n/I18nContext';
 
 function App() {
   return (
-    <AppProvider>
-      <NotificationContainer />
+    <I18nProvider>
+      <AppProvider>
+        <NotificationContainer />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<CreateUserPage />} />
@@ -33,8 +35,9 @@ function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </AppProvider>
+        </Routes>
+      </AppProvider>
+    </I18nProvider>
   );
 }
 
