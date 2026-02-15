@@ -111,8 +111,9 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
                     <div>{isHe ? 'שיעור מתוכנן' : 'Lesson scheduled'}: <b>{lessonDate}</b></div>
                     <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{isHe ? 'נשלח' : 'Requested'}: {requestDate}</div>
                     {r.requestedSlot && (
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{localizeDay(r.requestedSlot.day)} {r.requestedSlot.specificStartTime} - {r.requestedSlot.specificEndTime}</div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{r.requestedSlot.day} {r.requestedSlot.specificStartTime} - {r.requestedSlot.specificEndTime}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                        {localizeDay(r.requestedSlot.day)} {r.requestedSlot.specificStartTime} - {r.requestedSlot.specificEndTime}
+                      </div>
                     )}
                   </div>
                   {isPending && timer && (
