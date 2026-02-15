@@ -8,7 +8,7 @@ import ConfirmModal from "../components/ConfirmModal";
 export default function LessonPage() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
-  const { user, completeLesson, rateLesson, cancelLesson, addNotification } = useApp();
+  const { completeLesson, rateLesson, cancelLesson, addNotification } = useApp();
   
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRatingForm, setShowRatingForm] = useState(false);

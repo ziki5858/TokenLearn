@@ -1,9 +1,12 @@
 import React from "react";
 import Button from "./Button";
+import { useI18n } from "../i18n/useI18n";
 
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
+  const { language } = useI18n();
+  const isHe = language === "he";
   // Mock data - in real app, this would come from backend
   const availability = tutor?.availabilityAsTeacher || tutor?.availability || [
     { id: 1, day: "Sunday", startTime: "18:00", endTime: "21:00" },
@@ -12,7 +15,7 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
   ];
 
   const rawCourses = tutor?.coursesAsTeacher || tutor?.courses || [
-    { id: 1, name: tutor?.course || `Course ${tutor?.courseNumber || "N/A"}` }
+    { id: 1, name: tutor?.course || `${isHe ? "קורס" : "Course"} ${tutor?.courseNumber || (isHe ? "לא זמין" : "N/A")}` }
   ];
 
   // המרה: אם זה מחרוזת -> הפוך לאובייקט. אם זה כבר אובייקט -> תשאיר אותו.
@@ -21,13 +24,13 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
   );
 
   const aboutMe = tutor?.aboutMeAsTeacher || tutor?.about || 
-    "Experienced tutor passionate about helping students achieve their goals. I focus on building strong fundamentals and practical problem-solving skills.";
+    isHe ? "מורה מנוסה עם תשוקה לעזור לסטודנטים להשיג את היעדים שלהם. אני מתמקד/ת בבסיס חזק ובפתרון בעיות מעשי." : "Experienced tutor passionate about helping students achieve their goals. I focus on building strong fundamentals and practical problem-solving skills.";
 
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.header}>
-          <h2 style={{ margin: 0 }}>Tutor Profile</h2>
+          <h2 style={{ margin: 0 }}>{isHe ? "פרופיל מורה" : "Tutor Profile"}</h2>
           <button onClick={onClose} style={styles.closeBtn}>✕</button>
         </div>
 
@@ -50,21 +53,21 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
             <div style={{ flex: 1 }}>
               <h3 style={{ margin: "0 0 8px 0", fontSize: 22 }}>{tutor.name}</h3>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, color: "#64748b" }}>
-                <div>⭐ Rating: <strong>{tutor.rating}</strong></div>
-                {tutor.lessons && <div>📚 {tutor.lessons} lessons taught</div>}
+                <div>⭐ {isHe ? "דירוג" : "Rating"}: <strong>{tutor.rating}</strong></div>
+                {tutor.lessons && <div>📚 {tutor.lessons} {isHe ? "שיעורים נלמדו" : "lessons taught"}</div>}
               </div>
             </div>
           </div>
 
           {/* About Section */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>About Me</h3>
+            <h3 style={styles.sectionTitle}>{isHe ? "עליי" : "About Me"}</h3>
             <p style={styles.text}>{aboutMe}</p>
           </div>
 
           {/* Courses Teaching */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Courses I Teach</h3>
+            <h3 style={styles.sectionTitle}>{isHe ? "קורסים שאני מלמד/ת" : "Courses I Teach"}</h3>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {courses.map(course => (
                 <div key={course.id} style={styles.coursePill}>
@@ -76,7 +79,7 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
 
           {/* Availability */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Available Time Slots</h3>
+            <h3 style={styles.sectionTitle}>{isHe ? "זמני זמינות" : "Available Time Slots"}</h3>
             <div style={{ display: "grid", gap: 8 }}>
               {availability.length > 0 ? (
                 availability.map(slot => (
@@ -89,7 +92,7 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
                 ))
               ) : (
                 <div style={styles.noAvailability}>
-                  No availability information provided
+                  {isHe ? "לא הוזן מידע על זמינות" : "No availability information provided"}
                 </div>
               )}
             </div>
@@ -98,13 +101,13 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
           {/* Action Buttons */}
           <div style={styles.actions}>
             <button onClick={onClose} style={styles.cancelBtn}>
-              Close
+              {isHe ? "סגירה" : "Close"}
             </button>
             <Button onClick={() => {
               onClose();
               onBookLesson?.();
             }}>
-              Book a Lesson
+              {isHe ? "קביעת שיעור" : "Book a Lesson"}
             </Button>
           </div>
         </div>
