@@ -20,16 +20,25 @@ const styles = {
     gap: 8,
     alignItems: 'center',
     fontSize: 13,
-    color: '#334155'
+    color: '#334155',
+    padding: '8px 12px',
+    borderRadius: 12,
+    border: '1px solid rgba(148, 163, 184, 0.3)',
+    background: 'rgba(255, 255, 255, 0.95)',
+    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)'
   },
   label: {
-    fontWeight: 600
+    fontWeight: 700,
+    minWidth: 70,
+    whiteSpace: 'nowrap'
   },
   select: {
     border: '1px solid #cbd5e1',
     borderRadius: 8,
     padding: '6px 8px',
     background: 'white',
-    color: '#0f172a'
+    color: '#0f172a',
+    minWidth: 86,
+    fontWeight: 600
   }
 };

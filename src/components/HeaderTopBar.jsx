@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import { useI18n } from '../i18n/useI18n';
 import LanguageSwitcher from './LanguageSwitcher';
+import TokenBalanceMenu from './TokenBalanceMenu';
 
 export default function HeaderTopBar({ tutorRating = null, onContactUs }) {
   const navigate = useNavigate();
@@ -21,27 +22,13 @@ export default function HeaderTopBar({ tutorRating = null, onContactUs }) {
           </button>
         )}
       </div>
+
       <div style={styles.right}>
-        <LanguageSwitcher />
-        <div style={styles.pill}>
-          {t('headerTopBar.totalBalance')}: <b>{tokenSummary.total}</b>
-        </div>
-
-        <div style={styles.pill}>
-          {t('headerTopBar.availableBalance')}: <b>{tokenSummary.available}</b>
-        </div>
-
-        <div style={styles.pill}>
-          {t('headerTopBar.lockedBalance')}: <b>{tokenSummary.locked}</b>
-        </div>
-
-        <div style={styles.pill}>
-          {t('headerTopBar.futureTutorEarnings')}: <b>{tokenSummary.futureTutorEarnings}</b>
-        </div>
-
-        <div style={styles.pill}>
+        <div style={styles.ratingPill}>
           {t('headerTopBar.tutorRating')}: <b>{tutorRating ?? t('common.na')}</b>
         </div>
+        <TokenBalanceMenu tokenSummary={tokenSummary} />
+        <LanguageSwitcher />
       </div>
     </header>
   );
@@ -56,10 +43,10 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '16px 24px',
-    background: 'rgba(255, 255, 255, 0.95)',
+    background: 'rgba(248, 250, 252, 0.95)',
     backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
+    boxShadow: '0 6px 20px rgba(15, 23, 42, 0.08)',
     transition: 'all 0.2s ease'
   },
   left: {
@@ -73,11 +60,10 @@ const styles = {
     background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
     border: 'none',
     color: '#ffffff',
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: 'pointer',
     fontSize: 14,
-    transition: 'all 0.2s ease',
-    boxShadow: '0 2px 4px rgba(6, 182, 212, 0.2)'
+    boxShadow: '0 6px 16px rgba(6, 182, 212, 0.24)'
   },
   adminBtn: {
     padding: '10px 18px',
@@ -85,25 +71,25 @@ const styles = {
     background: 'linear-gradient(135deg, #f59e0b, #d97706)',
     border: 'none',
     color: '#ffffff',
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: 'pointer',
     fontSize: 14,
-    transition: 'all 0.2s ease',
-    boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)'
+    boxShadow: '0 6px 16px rgba(245, 158, 11, 0.24)'
   },
   right: {
     display: 'flex',
-    gap: 16,
-    alignItems: 'center'
+    gap: 12,
+    alignItems: 'center',
+    marginLeft: 'auto',
+    direction: 'ltr'
   },
-  pill: {
-    padding: '8px 16px',
-    borderRadius: 20,
-    background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-    border: '1px solid #e2e8f0',
+  ratingPill: {
+    padding: '10px 14px',
+    borderRadius: 12,
+    background: 'linear-gradient(135deg, #f8fafc, #eef2ff)',
+    border: '1px solid #dbeafe',
     fontSize: 13,
-    fontWeight: 500,
-    color: '#334155',
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+    fontWeight: 600,
+    color: '#334155'
   }
 };

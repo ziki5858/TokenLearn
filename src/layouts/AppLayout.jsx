@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import TokenBalanceMenu from '../components/TokenBalanceMenu';
 import { useI18n } from '../i18n/useI18n';
 import { useApp } from '../context/useApp';
 
@@ -11,92 +12,111 @@ export default function AppLayout() {
   const isActive = (path) => location.pathname === path;
 
   const getNavLinkStyle = (path) => ({
-    padding: '12px 20px',
+    padding: '10px 16px',
     borderRadius: 12,
     textDecoration: 'none',
-    color: isActive(path) ? '#0891b2' : '#334155',
-    fontWeight: isActive(path) ? 600 : 500,
+    color: isActive(path) ? '#ffffff' : '#0f172a',
+    fontWeight: isActive(path) ? 700 : 600,
     fontSize: 14,
     transition: 'all 0.2s ease',
     background: isActive(path)
-      ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05))'
-      : 'transparent',
-    border: isActive(path) ? '1px solid rgba(6, 182, 212, 0.2)' : '1px solid transparent',
-    cursor: 'pointer'
+      ? 'linear-gradient(135deg, #0ea5e9, #2563eb)'
+      : 'rgba(255, 255, 255, 0.72)',
+    border: isActive(path) ? '1px solid transparent' : '1px solid rgba(148, 163, 184, 0.24)',
+    boxShadow: isActive(path) ? '0 8px 16px rgba(37, 99, 235, 0.25)' : '0 2px 6px rgba(15, 23, 42, 0.04)',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap'
   });
 
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'}>
-      <header
-        style={{
-          padding: '20px 24px',
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          marginBottom: '2rem'
-        }}
-      >
-        <nav
-          style={{
-            display: 'flex',
-            gap: '8px',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            maxWidth: '1200px',
-            margin: '0 auto'
-          }}
-        >
-          <Link to="/home" style={getNavLinkStyle('/home')}>
-            🏠 {t('nav.home')}
-          </Link>
-          <Link to="/find-tutor" style={getNavLinkStyle('/find-tutor')}>
-            🔍 {t('nav.findTutor')}
-          </Link>
-          <Link to="/lesson-requests" style={getNavLinkStyle('/lesson-requests')}>
-            📝 {t('nav.lessonRequests')}
-          </Link>
-          <Link to="/me" style={getNavLinkStyle('/me')}>
-            👤 {t('nav.personalArea')}
-          </Link>
-          <Link to="/rating" style={getNavLinkStyle('/rating')}>
-            ⭐ {t('nav.rating')}
-          </Link>
-          <div style={{ marginInlineStart: 'auto' }}>
+    <div dir={isRTL ? 'rtl' : 'ltr'} style={styles.page}>
+      <header style={styles.header}>
+        <div style={styles.navWrap}>
+          <nav style={styles.navLinks}>
+            <Link to="/home" style={getNavLinkStyle('/home')}>
+              🏠 {t('nav.home')}
+            </Link>
+            <Link to="/find-tutor" style={getNavLinkStyle('/find-tutor')}>
+              🔍 {t('nav.findTutor')}
+            </Link>
+            <Link to="/lesson-requests" style={getNavLinkStyle('/lesson-requests')}>
+              📝 {t('nav.lessonRequests')}
+            </Link>
+            <Link to="/me" style={getNavLinkStyle('/me')}>
+              👤 {t('nav.personalArea')}
+            </Link>
+            <Link to="/rating" style={getNavLinkStyle('/rating')}>
+              ⭐ {t('nav.rating')}
+            </Link>
+          </nav>
+
+          <div style={styles.controls}>
+            <TokenBalanceMenu tokenSummary={tokenSummary} />
             <LanguageSwitcher />
           </div>
-          <div style={tokenPillStyle}>
-            {t('headerTopBar.totalBalance')}: <b>{tokenSummary.total}</b>
-          </div>
-          <div style={tokenPillStyle}>
-            {t('headerTopBar.availableBalance')}: <b>{tokenSummary.available}</b>
-          </div>
-          <div style={tokenPillStyle}>
-            {t('headerTopBar.lockedBalance')}: <b>{tokenSummary.locked}</b>
-          </div>
-          <div style={tokenPillStyle}>
-            {t('headerTopBar.futureTutorEarnings')}: <b>{tokenSummary.futureTutorEarnings}</b>
-          </div>
-        </nav>
+        </div>
       </header>
-      <main
-        style={{
-          padding: '0 24px',
-          maxWidth: '1200px',
-          margin: '0 auto'
-        }}
-      >
-        <Outlet />
+
+      <main style={styles.main}>
+        <div style={styles.contentShell}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );
 }
 
-const tokenPillStyle = {
-  padding: '8px 12px',
-  borderRadius: 999,
-  border: '1px solid #e2e8f0',
-  background: '#f8fafc',
-  fontSize: 12,
-  color: '#334155'
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background:
+      'radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.16) 0%, rgba(255,255,255,0) 30%), radial-gradient(circle at 90% 10%, rgba(37, 99, 235, 0.14) 0%, rgba(255,255,255,0) 35%), #f8fafc'
+  },
+  header: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 12,
+    padding: '16px 24px',
+    background: 'rgba(248, 250, 252, 0.9)',
+    backdropFilter: 'blur(12px)',
+    borderBottom: '1px solid rgba(148, 163, 184, 0.22)',
+    boxShadow: '0 8px 30px rgba(15, 23, 42, 0.06)',
+    marginBottom: '1.4rem'
+  },
+  navWrap: {
+    maxWidth: 1200,
+    margin: '0 auto',
+    display: 'flex',
+    gap: 16,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    direction: 'ltr'
+  },
+  navLinks: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+    alignItems: 'center'
+  },
+  controls: {
+    marginLeft: 'auto',
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center',
+    flexWrap: 'wrap'
+  },
+  main: {
+    padding: '0 24px 32px',
+    maxWidth: '1200px',
+    margin: '0 auto'
+  },
+  contentShell: {
+    borderRadius: 24,
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    background: 'rgba(255, 255, 255, 0.7)',
+    boxShadow: '0 20px 60px rgba(15, 23, 42, 0.08)',
+    backdropFilter: 'blur(6px)',
+    padding: '12px 10px'
+  }
 };
