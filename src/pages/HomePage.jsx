@@ -5,8 +5,11 @@ import RecommendedTutors from "../components/RecommendedTutors";
 import PendingRequests from "../components/PendingRequests";
 import FooterStoryAndRules from "../components/FooterStoryAndRules";
 import ConfirmModal from "../components/ConfirmModal";
+import { useI18n } from "../i18n/useI18n";
 
 export default function HomePage() {
+  const { language } = useI18n();
+  const isHe = language === "he";
   const { user, approveLessonRequest, rejectLessonRequest, addNotification, contactAdmin } = useApp();
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectionMessage, setRejectionMessage] = useState("");
@@ -234,66 +237,64 @@ export default function HomePage() {
           <div style={styles.overlay} onClick={() => setRejectModalOpen(false)}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
               <div style={styles.modalHeader}>
-                <h3 style={{ margin: 0 }}>Reject Lesson Request</h3>
+                <h3 style={{ margin: 0 }}>{isHe ? "דחיית בקשת שיעור" : "Reject Lesson Request"}</h3>
                 <button onClick={() => setRejectModalOpen(false)} style={styles.closeBtn}>✕</button>
               </div>
               <div style={styles.modalBody}>
                 <label style={{ display: "grid", gap: 6 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    Reason for rejection *
+                    {isHe ? "סיבת דחייה *" : "Reason for rejection *"}
                   </div>
                   <textarea
                     value={rejectionMessage}
                     onChange={e => setRejectionMessage(e.target.value)}
-                    placeholder="Please provide a reason for rejecting this lesson request..."
+                    placeholder={isHe ? "אנא ציין/י סיבה לדחיית בקשת השיעור..." : "Please provide a reason for rejecting this lesson request..."}
                     style={styles.textarea}
                     rows={4}
                   />
                 </label>
               </div>
               <div style={styles.modalActions}>
-                <button onClick={() => setRejectModalOpen(false)} style={styles.cancelBtn}>
-                  Cancel
-                </button>
+                <button onClick={() => setRejectModalOpen(false)} style={styles.cancelBtn}>{isHe ? "ביטול" : "Cancel"}</button>
                 <button 
                   onClick={async () => {
                     if (!rejectionMessage.trim()) {
-                      addNotification("Please provide a reason for rejection", "error");
+                      addNotification(isHe ? "נא לציין סיבת דחייה" : "Please provide a reason for rejection", "error");
                       return;
                     }
                     const result = await rejectLessonRequest(selectedRequestId, rejectionMessage);
                     if (result.success) {
-                      addNotification("Lesson rejected", "info");
+                      addNotification(isHe ? "הבקשה נדחתה" : "Lesson rejected", "info");
                       setRejectModalOpen(false);
                     }
                   }}
                   style={styles.rejectConfirmBtn}
                 >
-                  Reject Request
+                  {isHe ? "דחה/י בקשה" : "Reject Request"}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Contact Admin Modal */}
+        {/* {isHe ? "יצירת קשר עם מנהל" : "Contact Admin"} Modal */}
         {contactModalOpen && (
           <div style={styles.overlay} onClick={() => setContactModalOpen(false)}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
               <div style={styles.modalHeader}>
-                <h3 style={{ margin: 0 }}>Contact Admin</h3>
+                <h3 style={{ margin: 0 }}>{isHe ? "יצירת קשר עם מנהל" : "Contact Admin"}</h3>
                 <button onClick={() => setContactModalOpen(false)} style={styles.closeBtn}>✕</button>
               </div>
               <div style={styles.modalBody}>
                 <label style={{ display: "grid", gap: 6, marginBottom: 12 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    Subject *
+                    {isHe ? "נושא *" : "Subject *"}
                   </div>
                   <input
                     type="text"
                     value={contactSubject}
                     onChange={e => setContactSubject(e.target.value)}
-                    placeholder="What is this about?"
+                    placeholder={isHe ? "על מה מדובר?" : "What is this about?"}
                     style={{
                       padding: "10px 12px",
                       borderRadius: 10,
@@ -306,25 +307,23 @@ export default function HomePage() {
                 </label>
                 <label style={{ display: "grid", gap: 6 }}>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>
-                    Message *
+                    {isHe ? "הודעה *" : "Message *"}
                   </div>
                   <textarea
                     value={contactMessage}
                     onChange={e => setContactMessage(e.target.value)}
-                    placeholder="Describe your issue or question..."
+                    placeholder={isHe ? "פרט/י את הבעיה או השאלה..." : "Describe your issue or question..."}
                     style={styles.textarea}
                     rows={5}
                   />
                 </label>
               </div>
               <div style={styles.modalActions}>
-                <button onClick={() => setContactModalOpen(false)} style={styles.cancelBtn}>
-                  Cancel
-                </button>
+                <button onClick={() => setContactModalOpen(false)} style={styles.cancelBtn}>{isHe ? "ביטול" : "Cancel"}</button>
                 <button 
                   onClick={async () => {
                     if (!contactSubject.trim() || !contactMessage.trim()) {
-                      addNotification("Please fill in both subject and message", "error");
+                      addNotification(isHe ? "נא למלא גם נושא וגם הודעה" : "Please fill in both subject and message", "error");
                       return;
                     }
                     const result = await contactAdmin(contactMessage, contactSubject);
@@ -343,7 +342,7 @@ export default function HomePage() {
                     fontSize: 14
                   }}
                 >
-                  Send Message
+                  {isHe ? "שליחת הודעה" : "Send Message"}
                 </button>
               </div>
             </div>
@@ -351,10 +350,10 @@ export default function HomePage() {
         )}
 
         <section style={cardStyle}>
-          <h2 style={{ marginTop: 0, marginBottom: 10 }}>Upcoming Lessons</h2>
+          <h2 style={{ marginTop: 0, marginBottom: 10 }}>{isHe ? "שיעורים קרובים" : "Upcoming Lessons"}</h2>
           {upcomingLessons.length === 0 ? (
             <div style={{ background: "#f8fafc", padding: 12, borderRadius: 10, color: "#475569" }}>
-              No lessons scheduled yet.
+              {isHe ? "אין עדיין שיעורים מתוכננים." : "No lessons scheduled yet."}
             </div>
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
@@ -375,9 +374,9 @@ export default function HomePage() {
                   }}
                 >
                   <div style={{ display: "grid", gap: 4 }}>
-                    <div style={rolePill(lesson.role)}>{lesson.role}</div>
+                    <div style={rolePill(lesson.role)}>{lesson.role === "teacher" ? (isHe ? "מורה" : "teacher") : (isHe ? "תלמיד/ה" : "student")}</div>
                     <div style={{ fontWeight: 700 }}>{lesson.topic}</div>
-                    <div style={{ fontSize: 13, color: "#475569" }}>With: {lesson.withUserName}</div>
+                    <div style={{ fontSize: 13, color: "#475569" }}>{isHe ? "עם: " : "With: "}{lesson.withUserName}</div>
                     <div style={{ fontSize: 13, color: "#475569" }}>{new Date(lesson.dateTime).toLocaleString()}</div>
                   </div>
                 </div>

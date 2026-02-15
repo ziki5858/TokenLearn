@@ -1,23 +1,28 @@
 import React from "react";
+import { useI18n } from "../i18n/useI18n";
 
 export default function FooterStoryAndRules() {
+  const { language } = useI18n();
+  const isHe = language === 'he';
+
   return (
     <footer style={styles.footer}>
       <div>
-        <h3>Our Story</h3>
+        <h3>{isHe ? 'הסיפור שלנו' : 'Our Story'}</h3>
         <p>
-          TokenLearn is a collaborative learning platform where users teach,
-          earn tokens, and learn from one another.
+          {isHe
+            ? 'TokenLearn היא פלטפורמת למידה שיתופית שבה משתמשים מלמדים, מרוויחים טוקנים ולומדים אחד מהשני.'
+            : 'TokenLearn is a collaborative learning platform where users teach, earn tokens, and learn from one another.'}
         </p>
       </div>
 
       <div>
-        <h3>Lesson Rules</h3>
+        <h3>{isHe ? 'כללי שיעורים' : 'Lesson Rules'}</h3>
         <ul>
-          <li>You cannot request a lesson without enough tokens.</li>
-          <li>Tokens update only after a lesson is completed.</li>
-          <li>Every request has a clear status.</li>
-          <li>You can cancel only while status is Pending.</li>
+          <li>{isHe ? 'אי אפשר לבקש שיעור בלי מספיק טוקנים.' : 'You cannot request a lesson without enough tokens.'}</li>
+          <li>{isHe ? 'הטוקנים מתעדכנים רק אחרי השלמת שיעור.' : 'Tokens update only after a lesson is completed.'}</li>
+          <li>{isHe ? 'לכל בקשה יש סטטוס ברור.' : 'Every request has a clear status.'}</li>
+          <li>{isHe ? 'אפשר לבטל רק כשהסטטוס הוא Pending.' : 'You can cancel only while status is Pending.'}</li>
         </ul>
       </div>
     </footer>
