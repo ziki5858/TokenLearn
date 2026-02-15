@@ -7,6 +7,8 @@ const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
   const { language } = useI18n();
   const isHe = language === "he";
+  const dayMap = { Sunday: 'ראשון', Monday: 'שני', Tuesday: 'שלישי', Wednesday: 'רביעי', Thursday: 'חמישי', Friday: 'שישי', Saturday: 'שבת' };
+  const localizeDay = (day) => (isHe ? (dayMap[day] || day) : day);
   // Mock data - in real app, this would come from backend
   const availability = tutor?.availabilityAsTeacher || tutor?.availability || [
     { id: 1, day: "Sunday", startTime: "18:00", endTime: "21:00" },
@@ -84,7 +86,7 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
               {availability.length > 0 ? (
                 availability.map(slot => (
                   <div key={slot.id} style={styles.availabilitySlot}>
-                    <div style={{ fontWeight: 600 }}>{slot.day}</div>
+                    <div style={{ fontWeight: 600 }}>{localizeDay(slot.day)}</div>
                     <div style={{ fontSize: 14, color: "#64748b" }}>
                       {slot.startTime} - {slot.endTime}
                     </div>

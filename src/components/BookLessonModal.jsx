@@ -8,6 +8,8 @@ const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 export default function BookLessonModal({ tutor, onClose, onBook }) {
   const { language } = useI18n();
   const isHe = language === "he";
+  const dayMap = { Sunday: 'ראשון', Monday: 'שני', Tuesday: 'שלישי', Wednesday: 'רביעי', Thursday: 'חמישי', Friday: 'שישי', Saturday: 'שבת' };
+  const localizeDay = (day) => (isHe ? (dayMap[day] || day) : day);
   const { createLessonRequest, addNotification } = useApp();
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState("");
@@ -185,7 +187,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
                     style={{ marginRight: 10 }}
                   />
                   <div>
-                    <div style={{ fontWeight: 600 }}>{slot.day}</div>
+                    <div style={{ fontWeight: 600 }}>{localizeDay(slot.day)}</div>
                     <div style={{ fontSize: 14, color: "#64748b" }}>
                       {isHe ? "זמין" : "Available"}: {slot.startTime} - {slot.endTime}
                     </div>

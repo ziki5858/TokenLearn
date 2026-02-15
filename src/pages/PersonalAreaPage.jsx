@@ -3,6 +3,7 @@ import { useApp } from "../context/useApp";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { useI18n } from "../i18n/useI18n";
 
 const cardStyle = {
   background: "linear-gradient(135deg, #ffffff 0%, #f4f7ff 100%)",
@@ -14,10 +15,13 @@ const cardStyle = {
   gap: 12
 };
 
-const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 
 export default function PersonalAreaPage() {
+  const { language } = useI18n();
+  const isHe = language === "he";
   const { user, updateUserProfile, loading, addNotification } = useApp();
+  const DAYS_OF_WEEK = isHe ? ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   
   // Initialize state directly from user data
   const [firstName, setFirstName] = useState(user?.firstName || "");
@@ -143,7 +147,7 @@ export default function PersonalAreaPage() {
   function handleSave() {
     // Validation
     if (!generalComplete) {
-      addNotification("Please complete the general details before saving.", "error");
+      addNotification(isHe ? "נא להשלים את הפרטים הכלליים לפני השמירה." : "Please complete the general details before saving.", "error");
       return;
     }
 
@@ -162,14 +166,14 @@ export default function PersonalAreaPage() {
     // Check for time conflicts in teacher availability
     const teacherConflicts = checkTimeConflicts(validAvailabilityTeacher);
     if (teacherConflicts.length > 0) {
-      addNotification("You have overlapping time slots in teacher availability!", "error");
+      addNotification(isHe ? "יש חפיפה בשעות הזמינות כמורה!" : "You have overlapping time slots in teacher availability!", "error");
       return;
     }
 
     // Check for time conflicts in student availability
     const studentConflicts = checkTimeConflicts(validAvailabilityStudent);
     if (studentConflicts.length > 0) {
-      addNotification("You have overlapping time slots in student availability!", "error");
+      addNotification(isHe ? "יש חפיפה בשעות הזמינות כתלמיד/ה!" : "You have overlapping time slots in student availability!", "error");
       return;
     }
 
@@ -219,7 +223,7 @@ export default function PersonalAreaPage() {
       {loading && <LoadingSpinner fullScreen />}
       
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ marginTop: 0 }}>Personal Area</h1>
+        <h1 style={{ marginTop: 0 }}>{isHe ? "אזור אישי" : "Personal Area"}</h1>
         {hasChanges && (
           <div style={{
             padding: "6px 12px",
@@ -243,7 +247,7 @@ export default function PersonalAreaPage() {
         gap: 12
       }}>
         <div>
-          <div style={{ fontSize: 14, color: "#475569" }}>Your tutor rating</div>
+          <div style={{ fontSize: 14, color: "#475569" }}>{isHe ? "הדירוג שלך כמורה" : "Your tutor rating"}</div>
           <div style={{ fontSize: 28, fontWeight: 800 }}>{user.tutorRating.toFixed(1)}</div>
         </div>
         <div style={{
@@ -271,7 +275,7 @@ export default function PersonalAreaPage() {
       )}
 
       <section style={cardStyle}>
-        <h2 style={{ margin: 0 }}>General</h2>
+        <h2 style={{ margin: 0 }}>{isHe ? "כללי" : "General"}</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div
             style={{
@@ -296,25 +300,25 @@ export default function PersonalAreaPage() {
           </div>
 
           <div style={{ display: "grid", gap: 8, minWidth: 240 }}>
-            <label style={{ fontSize: 14, fontWeight: 600 }}>Upload from computer</label>
+            <label style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "העלאה מהמחשב" : "Upload from computer"}</label>
             <input type="file" accept="image/*" onChange={handleFileChange} />
-            <label style={{ fontSize: 14, fontWeight: 600 }}>Or paste image URL</label>
+            <label style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "או הדבקת קישור לתמונה" : "Or paste image URL"}</label>
             <Input
               label={null}
               value={photoUrl}
               onChange={handleImageUrlChange}
-              placeholder="https://example.com/photo.jpg"
+              placeholder={isHe ? "https://example.com/photo.jpg" : "https://example.com/photo.jpg"}
             />
           </div>
         </div>
 
-        <Input label="First Name" value={firstName} onChange={(v) => { setFirstName(v); setHasChanges(true); }} placeholder="Enter your first name" />
-        <Input label="Last Name" value={lastName} onChange={(v) => { setLastName(v); setHasChanges(true); }} placeholder="Enter your last name" />
-        <Input label="Phone Number" value={phone} onChange={(v) => { setPhone(v); setHasChanges(true); }} placeholder="e.g., +1 555 123 4567" />
+        <Input label={isHe ? "שם פרטי" : "First Name"} value={firstName} onChange={(v) => { setFirstName(v); setHasChanges(true); }} placeholder={isHe ? "הכנס/י שם פרטי" : "Enter your first name"} />
+        <Input label={isHe ? "שם משפחה" : "Last Name"} value={lastName} onChange={(v) => { setLastName(v); setHasChanges(true); }} placeholder={isHe ? "הכנס/י שם משפחה" : "Enter your last name"} />
+        <Input label={isHe ? "טלפון" : "Phone Number"} value={phone} onChange={(v) => { setPhone(v); setHasChanges(true); }} placeholder={isHe ? "למשל: +972 50 123 4567" : "e.g., +1 555 123 4567"} />
       </section>
 
       <section style={cardStyle}>
-        <h2 style={{ margin: 0 }}>Courses I Want to Teach</h2>
+        <h2 style={{ margin: 0 }}>{isHe ? "קורסים שאני רוצה ללמד" : "Courses I Want to Teach"}</h2>
         {coursesAsTeacher.map((course, index) => (
           <div key={course.id} style={{
             display: "grid",
@@ -329,7 +333,7 @@ export default function PersonalAreaPage() {
               label={`Course ${index + 1}`}
               value={course.name}
               onChange={(value) => updateCourseAsTeacher(course.id, value)}
-              placeholder="e.g., Introduction to Algorithms"
+              placeholder={isHe ? "למשל: מבוא לאלגוריתמים" : "e.g., Introduction to Algorithms"}
               disabled={!generalComplete}
             />
             <div style={{ display: "flex", alignItems: "flex-end" }}>
@@ -347,9 +351,7 @@ export default function PersonalAreaPage() {
                   fontWeight: 600,
                   fontSize: 14
                 }}
-              >
-                Remove
-              </button>
+              >{isHe ? "הסרה" : "Remove"}</button>
             </div>
           </div>
         ))}
@@ -358,14 +360,14 @@ export default function PersonalAreaPage() {
           disabled={!generalComplete}
           style={{ justifySelf: "start" }}
         >
-          + Add Course to Teach
+          + {isHe ? "הוספת קורס ללימוד" : "Add Course to Teach"}
         </Button>
       </section>
 
       <section style={cardStyle}>
-        <h2 style={{ margin: 0 }}>My Availability as a Teacher</h2>
+        <h2 style={{ margin: 0 }}>{isHe ? "הזמינות שלי כמורה" : "My Availability as a Teacher"}</h2>
         <p style={{ margin: "0 0 8px", fontSize: 14, color: "#64748b" }}>
-          Set your available time slots for teaching
+          {isHe ? "הגדר/י את זמני הזמינות שלך להוראה" : "Set your available time slots for teaching"}
         </p>
         {availabilityAsTeacher.map((slot) => (
           <div key={slot.id} style={{
@@ -378,7 +380,7 @@ export default function PersonalAreaPage() {
             border: "1px solid #e2e8f0"
           }}>
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>Day</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "יום" : "Day"}</div>
               <select
                 value={slot.day}
                 onChange={(e) => updateAvailabilityAsTeacher(slot.id, "day", e.target.value)}
@@ -392,14 +394,14 @@ export default function PersonalAreaPage() {
                   background: "white"
                 }}
               >
-                <option value="">Select day</option>
+                <option value="">{isHe ? "בחר/י יום" : "Select day"}</option>
                 {DAYS_OF_WEEK.map(day => (
                   <option key={day} value={day}>{day}</option>
                 ))}
               </select>
             </label>
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>Start Time</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "שעת התחלה" : "Start Time"}</div>
               <input
                 type="time"
                 value={slot.startTime}
@@ -415,7 +417,7 @@ export default function PersonalAreaPage() {
               />
             </label>
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>End Time</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "שעת סיום" : "End Time"}</div>
               <input
                 type="time"
                 value={slot.endTime}
@@ -445,9 +447,7 @@ export default function PersonalAreaPage() {
                   fontWeight: 600,
                   fontSize: 14
                 }}
-              >
-                Remove
-              </button>
+              >{isHe ? "הסרה" : "Remove"}</button>
             </div>
           </div>
         ))}
@@ -456,18 +456,18 @@ export default function PersonalAreaPage() {
           disabled={!generalComplete}
           style={{ justifySelf: "start" }}
         >
-          + Add Time Slot
+          + {isHe ? "הוספת חלון זמן" : "Add Time Slot"}
         </Button>
       </section>
 
       <section style={cardStyle}>
-        <h2 style={{ margin: 0 }}>About Me as a Teacher</h2>
+        <h2 style={{ margin: 0 }}>{isHe ? "עליי כמורה" : "About Me as a Teacher"}</h2>
         <label style={{ display: "grid", gap: 6 }}>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Tell us about yourself as a teacher</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "ספר/י לנו על עצמך כמורה" : "Tell us about yourself as a teacher"}</div>
           <textarea
             value={aboutMeAsTeacher}
             onChange={e => setAboutMeAsTeacher(e.target.value)}
-            placeholder="Share your teaching style, strengths, and experience"
+            placeholder={isHe ? "שתף/י על סגנון ההוראה, החוזקות והניסיון שלך" : "Share your teaching style, strengths, and experience"}
             style={textareaStyle}
             disabled={!generalComplete}
           />
@@ -475,7 +475,7 @@ export default function PersonalAreaPage() {
       </section>
 
       <section style={cardStyle}>
-        <h2 style={{ margin: 0 }}>Courses I Want to Learn</h2>
+        <h2 style={{ margin: 0 }}>{isHe ? "קורסים שאני רוצה ללמוד" : "Courses I Want to Learn"}</h2>
         {coursesAsStudent.map((course, index) => (
           <div key={course.id} style={{
             display: "grid",
@@ -490,7 +490,7 @@ export default function PersonalAreaPage() {
               label={`Course ${index + 1}`}
               value={course.name}
               onChange={(value) => updateCourseAsStudent(course.id, value)}
-              placeholder="e.g., Data Structures"
+              placeholder={isHe ? "למשל: מבני נתונים" : "e.g., Data Structures"}
               disabled={!generalComplete}
             />
             <div style={{ display: "flex", alignItems: "flex-end" }}>
@@ -508,9 +508,7 @@ export default function PersonalAreaPage() {
                   fontWeight: 600,
                   fontSize: 14
                 }}
-              >
-                Remove
-              </button>
+              >{isHe ? "הסרה" : "Remove"}</button>
             </div>
           </div>
         ))}
@@ -519,14 +517,14 @@ export default function PersonalAreaPage() {
           disabled={!generalComplete}
           style={{ justifySelf: "start" }}
         >
-          + Add Course to Learn
+          + {isHe ? "הוספת קורס ללמידה" : "Add Course to Learn"}
         </Button>
       </section>
 
       <section style={cardStyle}>
-        <h2 style={{ margin: 0 }}>My Availability as a Student</h2>
+        <h2 style={{ margin: 0 }}>{isHe ? "הזמינות שלי כתלמיד/ה" : "My Availability as a Student"}</h2>
         <p style={{ margin: "0 0 8px", fontSize: 14, color: "#64748b" }}>
-          Set your available time slots for learning
+          {isHe ? "הגדר/י את זמני הזמינות שלך ללמידה" : "Set your available time slots for learning"}
         </p>
         {availabilityAsStudent.map((slot) => (
           <div key={slot.id} style={{
@@ -539,7 +537,7 @@ export default function PersonalAreaPage() {
             border: "1px solid #e2e8f0"
           }}>
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>Day</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "יום" : "Day"}</div>
               <select
                 value={slot.day}
                 onChange={(e) => updateAvailabilityAsStudent(slot.id, "day", e.target.value)}
@@ -553,14 +551,14 @@ export default function PersonalAreaPage() {
                   background: "white"
                 }}
               >
-                <option value="">Select day</option>
+                <option value="">{isHe ? "בחר/י יום" : "Select day"}</option>
                 {DAYS_OF_WEEK.map(day => (
                   <option key={day} value={day}>{day}</option>
                 ))}
               </select>
             </label>
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>Start Time</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "שעת התחלה" : "Start Time"}</div>
               <input
                 type="time"
                 value={slot.startTime}
@@ -576,7 +574,7 @@ export default function PersonalAreaPage() {
               />
             </label>
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>End Time</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "שעת סיום" : "End Time"}</div>
               <input
                 type="time"
                 value={slot.endTime}
@@ -606,9 +604,7 @@ export default function PersonalAreaPage() {
                   fontWeight: 600,
                   fontSize: 14
                 }}
-              >
-                Remove
-              </button>
+              >{isHe ? "הסרה" : "Remove"}</button>
             </div>
           </div>
         ))}
@@ -617,18 +613,18 @@ export default function PersonalAreaPage() {
           disabled={!generalComplete}
           style={{ justifySelf: "start" }}
         >
-          + Add Time Slot
+          + {isHe ? "הוספת חלון זמן" : "Add Time Slot"}
         </Button>
       </section>
 
       <section style={cardStyle}>
-        <h2 style={{ margin: 0 }}>About Me as a Student</h2>
+        <h2 style={{ margin: 0 }}>{isHe ? "עליי כתלמיד/ה" : "About Me as a Student"}</h2>
         <label style={{ display: "grid", gap: 6 }}>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Tell us about yourself as a student</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "ספר/י לנו על עצמך כתלמיד/ה" : "Tell us about yourself as a student"}</div>
           <textarea
             value={aboutMeAsStudent}
             onChange={e => setAboutMeAsStudent(e.target.value)}
-            placeholder="Share your goals, learning preferences, and what you're looking for in a tutor"
+            placeholder={isHe ? "שתף/י את המטרות והעדפות הלמידה שלך ומה את/ה מחפש/ת במורה" : "Share your goals, learning preferences, and what you're looking for in a tutor"}
             style={textareaStyle}
             disabled={!generalComplete}
           />
@@ -636,7 +632,7 @@ export default function PersonalAreaPage() {
       </section>
 
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button onClick={handleSave} disabled={!generalComplete}>Save</Button>
+        <Button onClick={handleSave} disabled={!generalComplete}>{isHe ? "שמירה" : "Save"}</Button>
       </div>
     </div>
   );

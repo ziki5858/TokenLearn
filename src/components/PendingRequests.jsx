@@ -8,6 +8,8 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
   const { addNotification } = useApp();
   const { language } = useI18n();
   const isHe = language === 'he';
+  const dayMap = { Sunday: 'ראשון', Monday: 'שני', Tuesday: 'שלישי', Wednesday: 'רביעי', Thursday: 'חמישי', Friday: 'שישי', Saturday: 'שבת' };
+  const localizeDay = (day) => (isHe ? (dayMap[day] || day) : day);
   const [timers, setTimers] = useState({});
 
   const calculateTimeRemaining = useCallback((lessonDateTime) => {
@@ -109,6 +111,7 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
                     <div>{isHe ? 'שיעור מתוכנן' : 'Lesson scheduled'}: <b>{lessonDate}</b></div>
                     <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{isHe ? 'נשלח' : 'Requested'}: {requestDate}</div>
                     {r.requestedSlot && (
+                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{localizeDay(r.requestedSlot.day)} {r.requestedSlot.specificStartTime} - {r.requestedSlot.specificEndTime}</div>
                       <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{r.requestedSlot.day} {r.requestedSlot.specificStartTime} - {r.requestedSlot.specificEndTime}</div>
                     )}
                   </div>
