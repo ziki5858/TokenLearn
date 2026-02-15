@@ -234,7 +234,7 @@ export default function PersonalAreaPage() {
             color: "#92400e",
             fontWeight: 600
           }}>
-            Unsaved changes
+            {isHe ? "יש שינויים שלא נשמרו" : "Unsaved changes"}
           </div>
         )}
       </div>
@@ -258,7 +258,7 @@ export default function PersonalAreaPage() {
           fontWeight: 700,
           border: "1px solid #0ea5e9"
         }}>
-          Rated by your students
+          {isHe ? "מדורג/ת על-ידי התלמידים שלך" : "Rated by your students"}
         </div>
       </section>
 
@@ -270,7 +270,9 @@ export default function PersonalAreaPage() {
           borderRadius: 12,
           padding: 12
         }}>
-          Please fill out your general details before completing your teacher/student profiles.
+          {isHe
+            ? "נא למלא פרטים כלליים לפני השלמת פרופיל המורה/תלמיד."
+            : "Please fill out your general details before completing your teacher/student profiles."}
         </div>
       )}
 
@@ -293,9 +295,9 @@ export default function PersonalAreaPage() {
             }}
           >
             {photoUrl ? (
-              <img src={photoUrl} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={photoUrl} alt={isHe ? "תמונת פרופיל" : "Profile"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
-              "No photo"
+              isHe ? "ללא תמונה" : "No photo"
             )}
           </div>
 
@@ -330,7 +332,7 @@ export default function PersonalAreaPage() {
             border: "1px solid #e2e8f0"
           }}>
             <Input
-              label={`Course ${index + 1}`}
+              label={isHe ? `קורס ${index + 1}` : `Course ${index + 1}`}
               value={course.name}
               onChange={(value) => updateCourseAsTeacher(course.id, value)}
               placeholder={isHe ? "למשל: מבוא לאלגוריתמים" : "e.g., Introduction to Algorithms"}
@@ -487,7 +489,7 @@ export default function PersonalAreaPage() {
             border: "1px solid #e2e8f0"
           }}>
             <Input
-              label={`Course ${index + 1}`}
+              label={isHe ? `קורס ${index + 1}` : `Course ${index + 1}`}
               value={course.name}
               onChange={(value) => updateCourseAsStudent(course.id, value)}
               placeholder={isHe ? "למשל: מבני נתונים" : "e.g., Data Structures"}
