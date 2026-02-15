@@ -1,11 +1,16 @@
 import React, { useState } from "react";
 import { useApp } from "../context/useApp";
 import Button from "./Button";
+import { useI18n } from "../i18n/useI18n";
 
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function BookLessonModal({ tutor, onClose, onBook }) {
-  const { createLessonRequest, addNotification } = useApp();
+  const { language } = useI18n();
+  const isHe = language === "he";
+  const dayMap = { Sunday: 'ראשון', Monday: 'שני', Tuesday: 'שלישי', Wednesday: 'רביעי', Thursday: 'חמישי', Friday: 'שישי', Saturday: 'שבת' };
+  const localizeDay = (day) => (isHe ? (dayMap[day] || day) : day);
+  const { createLessonRequest, addNotification, tokenSummary } = useApp();
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [specificStartTime, setSpecificStartTime] = useState("");
@@ -26,17 +31,17 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
 
   const handleBook = async () => {
     if (!selectedSlot) {
-      addNotification("Please select a time slot", "error");
+      addNotification(isHe ? "נא לבחור חלון זמן" : "Please select a time slot", "error");
       return;
     }
 
     if (!selectedCourse) {
-      addNotification("Please select a course", "error");
+      addNotification(isHe ? "נא לבחור קורס" : "Please select a course", "error");
       return;
     }
 
     if (!specificStartTime) {
-      addNotification("Please select a start time for your lesson", "error");
+      addNotification(isHe ? "נא לבחור שעת התחלה לשיעור" : "Please select a start time for your lesson", "error");
       return;
     }
 
@@ -68,13 +73,13 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
 
     // Validate start time is within available range
     if (startMinutes < slotStartMinutes) {
-      addNotification(`Start time must be at or after ${selectedSlot.startTime}`, "error");
+      addNotification(isHe ? `שעת ההתחלה חייבת להיות אחרי ${selectedSlot.startTime}` : `Start time must be at or after ${selectedSlot.startTime}`, "error");
       return;
     }
 
     // Validate end time (1 hour later) is within available range
     if (endMinutes > slotEndMinutes) {
-      addNotification(`The lesson would end at ${specificEndTime}, which is after the available time (${selectedSlot.endTime}). Please select an earlier start time.`, "error");
+      addNotification(isHe ? `השיעור יסתיים ב-${specificEndTime}, אחרי הזמן הזמין (${selectedSlot.endTime}). בחר/י שעה מוקדמת יותר.` : `The lesson would end at ${specificEndTime}, which is after the available time (${selectedSlot.endTime}). Please select an earlier start time.`, "error");
       return;
     }
 
@@ -83,7 +88,9 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
     // API expects: tutorId, course, requestedSlot, message
     const requestData = {
       tutorId: tutor.id,
+      tutorName: tutor.name,
       course: selectedCourse,
+      tokenCost: 1,
       requestedSlot: {
         day: selectedSlot.day,
         startTime: selectedSlot.startTime,
@@ -108,7 +115,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.header}>
-          <h2 style={{ margin: 0 }}>Book a Lesson with {tutor.name}</h2>
+          <h2 style={{ margin: 0 }}>{isHe ? `קביעת שיעור עם ${tutor.name}` : `Book a Lesson with ${tutor.name}`}</h2>
           <button onClick={onClose} style={styles.closeBtn}>✕</button>
         </div>
 
@@ -118,7 +125,12 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
             <div style={{ display: "grid", gap: 4 }}>
               <div style={{ fontSize: 18, fontWeight: 700 }}>{tutor.name}</div>
               <div style={{ fontSize: 14, color: "#64748b" }}>
-                Rating: ⭐ {tutor.rating} • {tutor.courses?.join(", ") || "No courses listed"}
+                {isHe ? "דירוג" : "Rating"}: ⭐ {tutor.rating} • {(tutor.courses?.join(", ")) || (isHe ? "אין קורסים זמינים" : "No courses listed")}
+              </div>
+              <div style={{ fontSize: 12, color: "#334155" }}>
+                {isHe
+                  ? `עלות שיעור: 1 טוקן • יתרה זמינה: ${tokenSummary?.available ?? 0}`
+                  : `Lesson cost: 1 token • Available balance: ${tokenSummary?.available ?? 0}`}
               </div>
             </div>
           </div>
@@ -126,7 +138,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
           {/* About the tutor */}
           {tutor.aboutMeAsTeacher && (
             <div style={styles.section}>
-              <h3 style={{ margin: "0 0 8px 0", fontSize: 16 }}>About the Teacher</h3>
+              <h3 style={{ margin: "0 0 8px 0", fontSize: 16 }}>{isHe ? "על המורה" : "About the Teacher"}</h3>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                 {tutor.aboutMeAsTeacher}
               </p>
@@ -135,7 +147,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
 
           {/* Course Selection */}
           <div style={styles.section}>
-            <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>Select Course *</h3>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>{isHe ? "בחירת קורס *" : "Select Course *"}</h3>
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
@@ -148,7 +160,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
                 background: "white"
               }}
             >
-              <option value="">Select a course</option>
+              <option value="">{isHe ? "בחר/י קורס" : "Select a course"}</option>
               {courses.map((course, index) => (
                 <option key={index} value={course}>
                   {course}
@@ -159,7 +171,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
 
           {/* Available Time Slots */}
           <div style={styles.section}>
-            <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>Select Available Time Slot</h3>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>{isHe ? "בחירת חלון זמן זמין" : "Select Available Time Slot"}</h3>
             <div style={{ display: "grid", gap: 8 }}>
               {availability.map(slot => (
                 <label
@@ -182,9 +194,9 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
                     style={{ marginRight: 10 }}
                   />
                   <div>
-                    <div style={{ fontWeight: 600 }}>{slot.day}</div>
+                    <div style={{ fontWeight: 600 }}>{localizeDay(slot.day)}</div>
                     <div style={{ fontSize: 14, color: "#64748b" }}>
-                      Available: {slot.startTime} - {slot.endTime}
+                      {isHe ? "זמין" : "Available"}: {slot.startTime} - {slot.endTime}
                     </div>
                   </div>
                 </label>
@@ -196,7 +208,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
           {selectedSlot && (
             <div style={styles.section}>
               <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>
-                Choose Your Lesson Start Time
+                {isHe ? "בחר/י שעת התחלה לשיעור" : "Choose Your Lesson Start Time"}
               </h3>
               <div style={{
                 padding: 16,
@@ -206,7 +218,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
                 marginBottom: 12
               }}>
                 <div style={{ fontSize: 14, color: "#0c4a6e", marginBottom: 8 }}>
-                  ℹ️ All lessons are 1 hour. Select a start time within the available range: {selectedSlot.startTime} - {(() => {
+                  {isHe ? "ℹ️ כל השיעורים הם שעה. בחר/י שעת התחלה בטווח:" : "ℹ️ All lessons are 1 hour. Select a start time within the available range:"} {selectedSlot.startTime} - {(() => {
                     // Calculate latest possible start time (1 hour before end time)
                     const [endHours, endMinutes] = selectedSlot.endTime.split(':').map(Number);
                     const endTotalMinutes = endHours * 60 + endMinutes;
@@ -275,17 +287,17 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
                         color: isValid ? "#15803d" : "#dc2626",
                         marginBottom: 4
                       }}>
-                        {isValid ? "✅ Valid Time" : "❌ Invalid Time"}
+                        {isValid ? isHe ? "✅ שעה תקינה" : "✅ Valid Time" : isHe ? "❌ שעה לא תקינה" : "❌ Invalid Time"}
                       </div>
                       <div style={{ 
                         fontSize: 13, 
                         color: isValid ? "#166534" : "#991b1b",
                       }}>
                         {isValid 
-                          ? `Lesson will run from ${specificStartTime} to ${endTime}` 
+                          ? isHe ? `השיעור יהיה בין ${specificStartTime} ל-${endTime}` : `Lesson will run from ${specificStartTime} to ${endTime}` 
                           : !isStartValid
-                            ? `⚠️ Start time ${specificStartTime} is before available range (starts at ${selectedSlot.startTime})`
-                            : `⚠️ Lesson would end at ${endTime}, which is after available time (ends at ${selectedSlot.endTime})`}
+                            ? isHe ? `⚠️ שעת ההתחלה ${specificStartTime} מוקדמת מהטווח (${selectedSlot.startTime})` : `⚠️ Start time ${specificStartTime} is before available range (starts at ${selectedSlot.startTime})`
+                            : isHe ? `⚠️ השיעור יסתיים ב-${endTime}, אחרי סוף הטווח (${selectedSlot.endTime})` : `⚠️ Lesson would end at ${endTime}, which is after available time (ends at ${selectedSlot.endTime})`}
                       </div>
                     </div>
                   );
@@ -298,12 +310,12 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
           <div style={styles.section}>
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>
-                Message to the tutor (optional)
+                {isHe ? "הודעה למורה (אופציונלי)" : "Message to the tutor (optional)"}
               </div>
               <textarea
                 value={message}
                 onChange={e => setMessage(e.target.value)}
-                placeholder="Tell the tutor what you'd like to learn or any special requests..."
+                placeholder={isHe ? "כתוב/כתבי מה תרצה/י ללמוד או בקשות מיוחדות..." : "Tell the tutor what you'd like to learn or any special requests..."}
                 style={styles.textarea}
               />
             </label>
@@ -312,10 +324,10 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
           {/* Action Buttons */}
           <div style={styles.actions}>
             <button onClick={onClose} style={styles.cancelBtn} disabled={isSubmitting}>
-              Cancel
+              {isHe ? "ביטול" : "Cancel"}
             </button>
             <Button onClick={handleBook} disabled={isSubmitting}>
-              {isSubmitting ? "Sending..." : "Send Lesson Request"}
+              {isSubmitting ? (isHe ? "שולח/ת..." : "Sending...") : (isHe ? "שליחת בקשת שיעור" : "Send Lesson Request")}
             </Button>
           </div>
         </div>

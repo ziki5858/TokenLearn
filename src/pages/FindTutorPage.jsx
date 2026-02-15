@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import BookLessonModal from "../components/BookLessonModal";
 import ViewProfileModal from "../components/ViewProfileModal";
+import { useI18n } from "../i18n/useI18n";
 
 const sampleTutors = [
   { 
@@ -72,6 +73,8 @@ export default function FindTutorPage() {
   const [minLessons, setMinLessons] = useState("0");
   const [selectedTutorForBooking, setSelectedTutorForBooking] = useState(null);
   const [selectedTutorForProfile, setSelectedTutorForProfile] = useState(null);
+  const { language } = useI18n();
+  const isHe = language === "he";
 
   const handleBook = (bookingData) => {
     console.log("Booking data:", bookingData);
@@ -91,9 +94,9 @@ export default function FindTutorPage() {
   return (
     <>
       <div style={{ maxWidth: 960, margin: "0 auto", padding: 20 }}>
-        <h1 style={{ marginTop: 0 }}>Find Tutor</h1>
+        <h1 style={{ marginTop: 0 }}>{isHe ? "חיפוש מורה" : "Find Tutor"}</h1>
         <p style={{ marginTop: 0, color: "#475569" }}>
-          Filter by course number, minimum rating, or minimum lessons taught.
+          {isHe ? "סינון לפי מספר קורס, דירוג מינימלי או מספר שיעורים מינימלי שנלמדו." : "Filter by course number, minimum rating, or minimum lessons taught."}
         </p>
 
       <div
@@ -110,17 +113,17 @@ export default function FindTutorPage() {
         }}
       >
         <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontWeight: 700 }}>Course Number</label>
+          <label style={{ fontWeight: 700 }}>{isHe ? "מספר קורס" : "Course Number"}</label>
           <input
             value={courseNumber}
             onChange={e => setCourseNumber(e.target.value)}
-            placeholder="e.g., 20431"
+            placeholder={isHe ? "לדוגמה: 20431" : "e.g., 20431"}
             style={inputStyle}
           />
         </div>
 
         <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontWeight: 700 }}>Min Rating (1-5)</label>
+          <label style={{ fontWeight: 700 }}>{isHe ? "דירוג מינימלי (1-5)" : "Min Rating (1-5)"}</label>
           <input
             type="number"
             min="1"
@@ -133,7 +136,7 @@ export default function FindTutorPage() {
         </div>
 
         <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontWeight: 700 }}>Min Lessons Taught</label>
+          <label style={{ fontWeight: 700 }}>{isHe ? "מינימום שיעורים שנלמדו" : "Min Lessons Taught"}</label>
           <input
             type="number"
             min="0"
@@ -164,7 +167,7 @@ export default function FindTutorPage() {
             <div style={{ display: "grid", gap: 4 }}>
               <div style={{ fontWeight: 700, fontSize: 16 }}>{t.name}</div>
               <div style={{ color: "#475569", fontSize: 14 }}>
-                Courses: {t.courses.join(", ")} • Rating: {t.rating} • Lessons: {t.lessons}
+                {isHe ? "קורסים" : "Courses"}: {t.courses.join(", ")} • {isHe ? "דירוג" : "Rating"}: {t.rating} • {isHe ? "שיעורים" : "Lessons"}: {t.lessons}
               </div>
             </div>
 
@@ -173,13 +176,13 @@ export default function FindTutorPage() {
                 style={primaryBtn}
                 onClick={() => setSelectedTutorForBooking(t)}
               >
-                Schedule Lesson
+                {isHe ? "קביעת שיעור" : "Schedule Lesson"}
               </button>
               <button 
                 style={ghostBtn}
                 onClick={() => setSelectedTutorForProfile(t)}
               >
-                View Profile
+                {isHe ? "צפייה בפרופיל" : "View Profile"}
               </button>
             </div>
           </div>
@@ -194,7 +197,7 @@ export default function FindTutorPage() {
             textAlign: "center",
             color: "#475569"
           }}>
-            No tutors match these filters yet.
+            {isHe ? "אין כרגע מורים שתואמים את הסינון." : "No tutors match these filters yet."}
           </div>
         )}
       </div>

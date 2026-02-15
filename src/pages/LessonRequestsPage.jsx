@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useApp } from "../context/useApp";
 import Button from "../components/Button";
 import ConfirmModal from "../components/ConfirmModal";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { useI18n } from "../i18n/useI18n";
 
 // Mock data - will come from backend
 const mockRequestsAsStudent = [
@@ -117,6 +118,8 @@ const mockRequestsAsTeacher = [
 ];
 
 export default function LessonRequestsPage() {
+  const { language } = useI18n();
+  const isHe = language === "he";
   const { approveLessonRequest, rejectLessonRequest, cancelLessonRequest, addNotification, loading } = useApp();
   const [activeTab, setActiveTab] = useState("student"); // student or teacher
   const [requestsAsStudent, setRequestsAsStudent] = useState(mockRequestsAsStudent);
@@ -129,7 +132,7 @@ export default function LessonRequestsPage() {
   const [timers, setTimers] = useState({});
 
   // Calculate time remaining until approval deadline (6 hours before lesson)
-  const calculateTimeRemaining = (lessonDateTime) => {
+  const calculateTimeRemaining = useCallback((lessonDateTime) => {
     const now = new Date();
     const lessonDate = new Date(lessonDateTime);
     
@@ -139,7 +142,7 @@ export default function LessonRequestsPage() {
     const diff = deadline.getTime() - now.getTime();
     
     if (diff <= 0) {
-      return { expired: true, text: "Expired", hours: 0, minutes: 0 };
+      return { expired: true, text: isHe ? "פג" : "Expired", hours: 0, minutes: 0 };
     }
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -147,15 +150,15 @@ export default function LessonRequestsPage() {
     
     return {
       expired: false,
-      text: `${hours}h ${minutes}m`,
+      text: isHe ? `${hours}ש׳ ${minutes}ד׳` : `${hours}h ${minutes}m`,
       hours,
       minutes
     };
-  };
+  }, [isHe]);
 
   // Format lesson date for display
   const formatLessonDate = (lessonDateTime) => {
-    if (!lessonDateTime) return "N/A";
+    if (!lessonDateTime) return isHe ? "לא זמין" : "N/A";
     const date = new Date(lessonDateTime);
     const now = new Date();
     const tomorrow = new Date(now);
@@ -167,9 +170,9 @@ export default function LessonRequestsPage() {
     const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     
     if (isToday) {
-      return `Today ${timeStr}`;
+      return isHe ? `היום ${timeStr}` : `Today ${timeStr}`;
     } else if (isTomorrow) {
-      return `Tomorrow ${timeStr}`;
+      return isHe ? `מחר ${timeStr}` : `Tomorrow ${timeStr}`;
     } else {
       const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       return `${dateStr} ${timeStr}`;
@@ -192,12 +195,12 @@ export default function LessonRequestsPage() {
     const interval = setInterval(updateTimers, 60000); // Update every minute
     
     return () => clearInterval(interval);
-  }, [requestsAsStudent, requestsAsTeacher]);
+  }, [requestsAsStudent, requestsAsTeacher, calculateTimeRemaining]);
 
   const handleApprove = async (requestId) => {
     const timer = timers[requestId];
     if (timer?.expired) {
-      addNotification("Cannot approve: approval deadline has passed (must approve 6+ hours before lesson)", "error");
+      addNotification(isHe ? "אי אפשר לאשר: מועד האישור עבר" : "Cannot approve: approval deadline has passed (must approve 6+ hours before lesson)", "error");
       return;
     }
     
@@ -217,7 +220,7 @@ export default function LessonRequestsPage() {
 
   const handleReject = async () => {
     if (!rejectionMessage.trim()) {
-      addNotification("Please provide a reason for rejection", "error");
+      addNotification(isHe ? "נא לספק סיבת דחייה" : "Please provide a reason for rejection", "error");
       return;
     }
 
@@ -263,9 +266,9 @@ export default function LessonRequestsPage() {
 
   const getStatusText = (status) => {
     switch (status) {
-      case "pending": return "⏳ Pending";
-      case "approved": return "✅ Approved";
-      case "rejected": return "❌ Rejected";
+      case "pending": return isHe ? "⏳ ממתין" : "⏳ Pending";
+      case "approved": return isHe ? "✅ אושר" : "✅ Approved";
+      case "rejected": return isHe ? "❌ נדחה" : "❌ Rejected";
       default: return status;
     }
   };
@@ -273,9 +276,9 @@ export default function LessonRequestsPage() {
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: 20 }}>
       {loading && <LoadingSpinner fullScreen />}
-      <h1 style={{ marginTop: 0 }}>Lesson Requests</h1>
+      <h1 style={{ marginTop: 0 }}>{isHe ? "בקשות שיעור" : "Lesson Requests"}</h1>
       <p style={{ marginTop: 0, color: "#64748b", marginBottom: 20 }}>
-        Manage your lesson requests as a student and teacher
+        {isHe ? "ניהול בקשות שיעור כתלמיד/ה וכמורה" : "Manage your lesson requests as a student and teacher"}
       </p>
 
       {/* Tabs */}
@@ -287,7 +290,7 @@ export default function LessonRequestsPage() {
             ...(activeTab === "student" ? styles.tabActive : {})
           }}
         >
-          My Requests as Student ({requestsAsStudent.length})
+          {isHe ? "הבקשות שלי כתלמיד/ה" : "My Requests as Student"} ({requestsAsStudent.length})
         </button>
         <button
           onClick={() => setActiveTab("teacher")}
@@ -296,17 +299,17 @@ export default function LessonRequestsPage() {
             ...(activeTab === "teacher" ? styles.tabActive : {})
           }}
         >
-          Requests from Students ({requestsAsTeacher.filter(r => r.status === "pending").length})
+          {isHe ? "בקשות מתלמידים" : "Requests from Students"} ({requestsAsTeacher.filter(r => r.status === "pending").length})
         </button>
       </div>
 
       {/* Student Requests */}
       {activeTab === "student" && (
         <div style={{ display: "grid", gap: 16, marginTop: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 20 }}>Requests I Sent to Tutors</h2>
+          <h2 style={{ margin: 0, fontSize: 20 }}>{isHe ? "בקשות ששלחתי למורים" : "Requests I Sent to Tutors"}</h2>
           {requestsAsStudent.length === 0 ? (
             <div style={styles.emptyState}>
-              No lesson requests yet. Find a tutor and book a lesson!
+              {isHe ? "עדיין אין בקשות שיעור. מצא/י מורה והזמן/י שיעור!" : "No lesson requests yet. Find a tutor and book a lesson!"}
             </div>
           ) : (
             requestsAsStudent.map(req => {
@@ -341,23 +344,23 @@ export default function LessonRequestsPage() {
 
                   <div style={styles.cardContent}>
                     <div style={styles.infoRow}>
-                      <strong>Lesson Scheduled:</strong>
+                      <strong>{isHe ? "שיעור מתוכנן:" : "Lesson Scheduled:"}</strong>
                       <span style={{ fontWeight: 600, color: "#0ea5e9" }}>{lessonDate}</span>
                     </div>
                     {req.message && (
                       <div style={styles.infoRow}>
-                        <strong>My Message:</strong>
+                        <strong>{isHe ? "ההודעה שלי:" : "My Message:"}</strong>
                         <span style={{ fontStyle: "italic" }}>"{req.message}"</span>
                       </div>
                     )}
                     {req.rejectionReason && (
                       <div style={styles.infoRow}>
-                        <strong>Rejection Reason:</strong>
+                        <strong>{isHe ? "סיבת דחייה:" : "Rejection Reason:"}</strong>
                         <span style={{ color: "#dc2626", fontStyle: "italic" }}>"{req.rejectionReason}"</span>
                       </div>
                     )}
                     <div style={styles.infoRow}>
-                      <strong>Requested At:</strong>
+                      <strong>{isHe ? "נשלח בתאריך:" : "Requested At:"}</strong>
                       <span style={{ fontSize: 13, color: "#64748b" }}>{requestDate}</span>
                     </div>
                     
@@ -373,9 +376,9 @@ export default function LessonRequestsPage() {
                         fontSize: 14
                       }}>
                         {timer.expired ? (
-                          "⏰ Approval deadline expired - Request auto-cancelled"
+                          isHe ? "⏰ מועד האישור פג - הבקשה בוטלה" : "⏰ Approval deadline expired - Request auto-cancelled"
                         ) : (
-                          `⏱️ Tutor must approve within: ${timer.text} (6h before lesson)`
+                          isHe ? `⏱️ על המורה לאשר תוך: ${timer.text} (6 שעות לפני השיעור)` : `⏱️ Tutor must approve within: ${timer.text} (6h before lesson)`
                         )}
                       </div>
                     )}
@@ -388,7 +391,7 @@ export default function LessonRequestsPage() {
                         style={styles.cancelBtn}
                         disabled={loading}
                       >
-                        Cancel Request
+                        {isHe ? "ביטול בקשה" : "Cancel Request"}
                       </button>
                     </div>
                   )}
@@ -402,10 +405,10 @@ export default function LessonRequestsPage() {
       {/* Teacher Requests */}
       {activeTab === "teacher" && (
         <div style={{ display: "grid", gap: 16, marginTop: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 20 }}>Requests from My Students</h2>
+          <h2 style={{ margin: 0, fontSize: 20 }}>{isHe ? "בקשות מהתלמידים שלי" : "Requests from My Students"}</h2>
           {requestsAsTeacher.length === 0 ? (
             <div style={styles.emptyState}>
-              No requests from students yet.
+              {isHe ? "אין עדיין בקשות מתלמידים." : "No requests from students yet."}
             </div>
           ) : (
             requestsAsTeacher.map(req => {
@@ -440,17 +443,17 @@ export default function LessonRequestsPage() {
 
                   <div style={styles.cardContent}>
                     <div style={styles.infoRow}>
-                      <strong>Lesson Scheduled:</strong>
+                      <strong>{isHe ? "שיעור מתוכנן:" : "Lesson Scheduled:"}</strong>
                       <span style={{ fontWeight: 600, color: "#0ea5e9" }}>{lessonDate}</span>
                     </div>
                     {req.message && (
                       <div style={styles.infoRow}>
-                        <strong>Student's Message:</strong>
+                        <strong>{isHe ? "הודעת התלמיד/ה:" : "Student's Message:"}</strong>
                         <span style={{ fontStyle: "italic" }}>"{req.message}"</span>
                       </div>
                     )}
                     <div style={styles.infoRow}>
-                      <strong>Requested At:</strong>
+                      <strong>{isHe ? "נשלח בתאריך:" : "Requested At:"}</strong>
                       <span style={{ fontSize: 13, color: "#64748b" }}>{requestDate}</span>
                     </div>
                     
@@ -466,9 +469,9 @@ export default function LessonRequestsPage() {
                         fontSize: 14
                       }}>
                         {timer.expired ? (
-                          "⏰ Approval deadline expired - Request auto-cancelled"
+                          isHe ? "⏰ מועד האישור פג - הבקשה בוטלה" : "⏰ Approval deadline expired - Request auto-cancelled"
                         ) : (
-                          `⏱️ You must approve within: ${timer.text} (6h before lesson)`
+                          isHe ? `⏱️ יש לאשר תוך: ${timer.text} (6 שעות לפני השיעור)` : `⏱️ You must approve within: ${timer.text} (6h before lesson)`
                         )}
                       </div>
                     )}
@@ -480,11 +483,9 @@ export default function LessonRequestsPage() {
                         onClick={() => openRejectModal(req)}
                         style={styles.rejectBtn}
                         disabled={loading}
-                      >
-                        Reject
-                      </button>
+                      >{isHe ? "דחייה" : "Reject"}</button>
                       <Button onClick={() => handleApprove(req.id)} disabled={loading}>
-                        Approve Lesson
+                        {isHe ? "אישור שיעור" : "Approve Lesson"}
                       </Button>
                     </div>
                   )}
@@ -500,45 +501,43 @@ export default function LessonRequestsPage() {
         <div style={styles.modalOverlay} onClick={() => setRejectModalOpen(false)}>
           <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <h3 style={{ margin: 0 }}>Reject Lesson Request</h3>
+              <h3 style={{ margin: 0 }}>{isHe ? "דחיית בקשת שיעור" : "Reject Lesson Request"}</h3>
               <button onClick={() => setRejectModalOpen(false)} style={styles.modalCloseBtn}>✕</button>
             </div>
             <div style={styles.modalBody}>
               <p style={{ margin: "0 0 16px", color: "#64748b" }}>
-                You are about to reject a lesson request from <strong>{selectedRequestForRejection.studentName}</strong>.
-                Please provide a reason so they can understand why.
+                {isHe ? "את/ה עומד/ת לדחות בקשת שיעור מאת" : "You are about to reject a lesson request from"} <strong>{selectedRequestForRejection.studentName}</strong>.
+                {isHe ? "נא לציין סיבה כדי שיוכלו להבין למה." : "Please provide a reason so they can understand why."}
               </p>
               <label style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 600 }}>Reason for rejection *</div>
+                <div style={{ fontWeight: 600 }}>{isHe ? "סיבת דחייה *" : "Reason for rejection *"}</div>
                 <textarea
                   value={rejectionMessage}
                   onChange={e => setRejectionMessage(e.target.value)}
-                  placeholder="e.g., I'm not available at that time, or I don't feel qualified to teach this topic..."
+                  placeholder={isHe ? "למשל: לא פנוי/ה בזמן הזה..." : "e.g., I'm not available at that time, or I don't feel qualified to teach this topic..."}
                   style={styles.modalTextarea}
                   autoFocus
                 />
               </label>
             </div>
             <div style={styles.modalActions}>
-              <button onClick={() => setRejectModalOpen(false)} style={styles.modalCancelBtn} disabled={loading}>
-                Cancel
-              </button>
+              <button onClick={() => setRejectModalOpen(false)} style={styles.modalCancelBtn} disabled={loading}>{isHe ? "ביטול" : "Cancel"}</button>
               <button onClick={handleReject} style={styles.modalRejectBtn} disabled={loading}>
-                Reject Request
+                {isHe ? "דחיית בקשה" : "Reject Request"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Cancel Request Confirmation Modal */}
+      {/* {isHe ? "ביטול בקשה" : "Cancel Request"} Confirmation Modal */}
       <ConfirmModal
         isOpen={cancelModalOpen}
         onClose={() => setCancelModalOpen(false)}
         onConfirm={handleCancel}
-        title="Cancel Lesson Request"
-        message={`Are you sure you want to cancel the lesson request with ${selectedRequestForCancel?.tutorName || 'this tutor'}?`}
-        confirmText="Yes, Cancel Request"
+        title={isHe ? "ביטול בקשת שיעור" : "Cancel Lesson Request"}
+        message={isHe ? `בטוח/ה שברצונך לבטל את הבקשה עם ${selectedRequestForCancel?.tutorName || 'המורה הזה/זו'}?` : `Are you sure you want to cancel the lesson request with ${selectedRequestForCancel?.tutorName || 'this tutor'}?`}
+        confirmText={isHe ? "כן, ביטול בקשה" : "Yes, Cancel Request"}
         confirmStyle="danger"
       />
     </div>

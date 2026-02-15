@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { AppContext } from './AppContextBase';
 
+const DEFAULT_LESSON_TOKEN_COST = 1;
+
+const clampNonNegative = (value) => Math.max(0, value);
+
+const recalculateTotal = (tokenData) => ({
+  ...tokenData,
+  total: clampNonNegative((tokenData.available || 0) + (tokenData.locked || 0))
+});
+
 export function AppProvider({ children }) {
   const [user, setUser] = useState({
     id: 1,
@@ -10,6 +19,12 @@ export function AppProvider({ children }) {
     phone: "+1234567890",
     photoUrl: "",
     tokenBalance: 12,
+    tokenBalances: {
+      total: 12,
+      available: 12,
+      locked: 0,
+      futureTutorEarnings: 0
+    },
     tutorRating: 4.8,
     isAdmin: true, // Set to true for admin users
     // Profile fields matching API spec
@@ -33,6 +48,7 @@ export function AppProvider({ children }) {
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [tokenEscrows, setTokenEscrows] = useState({});
 
   // Notification system
   const addNotification = (message, type = 'info') => {
@@ -86,9 +102,40 @@ export function AppProvider({ children }) {
   const createLessonRequest = async (requestData) => {
     return apiCall(async () => {
       // Here: POST /api/lesson-requests
+      const tokenCost = Number(requestData.tokenCost || DEFAULT_LESSON_TOKEN_COST);
+      const currentBalances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+
+      if (currentBalances.available < tokenCost) {
+        throw new Error('Not enough available tokens to create this lesson request.');
+      }
+
+      const requestId = Date.now();
+      const nextBalances = recalculateTotal({
+        ...currentBalances,
+        available: currentBalances.available - tokenCost,
+        locked: currentBalances.locked + tokenCost
+      });
+
+      setUser(prev => ({
+        ...prev,
+        tokenBalance: nextBalances.total,
+        tokenBalances: nextBalances
+      }));
+
+      setTokenEscrows(prev => ({
+        ...prev,
+        [requestId]: {
+          requestId,
+          lessonId: requestData.lessonId || null,
+          tutorId: requestData.tutorId,
+          tokenCost,
+          status: 'pending'
+        }
+      }));
+
       console.log('Creating lesson request:', requestData);
-      addNotification(`Lesson request sent to ${requestData.tutorName}!`, 'success');
-      return { requestId: Date.now(), ...requestData, status: 'pending' };
+      addNotification(`Lesson request sent! ${tokenCost} token(s) moved to locked balance.`, 'success');
+      return { requestId, ...requestData, tokenCost, status: 'pending' };
     });
   };
 
@@ -96,6 +143,28 @@ export function AppProvider({ children }) {
     return apiCall(async () => {
       // Here: POST /api/lesson-requests/{requestId}/approve
       console.log('Approving request:', requestId);
+      const escrow = tokenEscrows[requestId];
+      if (escrow) {
+        setTokenEscrows(prev => ({
+          ...prev,
+          [requestId]: { ...prev[requestId], status: 'approved' }
+        }));
+
+        if (String(escrow.tutorId) === String(user.id)) {
+          const currentBalances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+          const nextBalances = recalculateTotal({
+            ...currentBalances,
+            futureTutorEarnings: (currentBalances.futureTutorEarnings || 0) + escrow.tokenCost
+          });
+
+          setUser(prev => ({
+            ...prev,
+            tokenBalance: nextBalances.total,
+            tokenBalances: nextBalances
+          }));
+        }
+      }
+
       addNotification('Lesson request approved!', 'success');
       return { requestId, status: 'approved' };
     });
@@ -105,6 +174,28 @@ export function AppProvider({ children }) {
     return apiCall(async () => {
       // Here: POST /api/lesson-requests/{requestId}/reject
       console.log('Rejecting request:', requestId, reason);
+      const escrow = tokenEscrows[requestId];
+      if (escrow?.status === 'pending') {
+        const currentBalances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+        const releasedAmount = Math.min(escrow.tokenCost, currentBalances.locked || 0);
+        const nextBalances = recalculateTotal({
+          ...currentBalances,
+          available: currentBalances.available + releasedAmount,
+          locked: clampNonNegative(currentBalances.locked - releasedAmount)
+        });
+
+        setUser(prev => ({
+          ...prev,
+          tokenBalance: nextBalances.total,
+          tokenBalances: nextBalances
+        }));
+
+        setTokenEscrows(prev => ({
+          ...prev,
+          [requestId]: { ...prev[requestId], status: 'rejected' }
+        }));
+      }
+
       addNotification('Lesson request rejected.', 'info');
       return { requestId, status: 'rejected', rejectionReason: reason };
     });
@@ -114,25 +205,71 @@ export function AppProvider({ children }) {
     return apiCall(async () => {
       // Here: DELETE /api/lesson-requests/{requestId}
       console.log('Cancelling request:', requestId);
+      const escrow = tokenEscrows[requestId];
+      if (escrow && (escrow.status === 'pending' || escrow.status === 'approved')) {
+        const currentBalances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+        const releasedAmount = Math.min(escrow.tokenCost, currentBalances.locked || 0);
+        const nextBalances = recalculateTotal({
+          ...currentBalances,
+          available: currentBalances.available + releasedAmount,
+          locked: clampNonNegative(currentBalances.locked - releasedAmount),
+          futureTutorEarnings: escrow.status === 'approved' && String(escrow.tutorId) === String(user.id)
+            ? clampNonNegative((currentBalances.futureTutorEarnings || 0) - releasedAmount)
+            : (currentBalances.futureTutorEarnings || 0)
+        });
+
+        setUser(prev => ({
+          ...prev,
+          tokenBalance: nextBalances.total,
+          tokenBalances: nextBalances
+        }));
+
+        setTokenEscrows(prev => ({
+          ...prev,
+          [requestId]: { ...prev[requestId], status: 'cancelled' }
+        }));
+      }
+
       addNotification('Request cancelled successfully.', 'info');
       return { requestId };
     });
   };
 
   // Admin operations
-  const contactAdmin = async (message, subject) => {
+  const contactAdmin = async (subject, message) => {
     return apiCall(async () => {
       // Here: POST /api/admin/contact
-      console.log('Contacting admin:', { message, subject });
+      console.log('Contacting admin:', { subject, message });
       addNotification('Your message has been sent to the admin!', 'success');
       return { sent: true };
     });
   };
 
-  const cancelLesson = async (lessonId) => {
+  const cancelLesson = async (lessonId, metadata = {}) => {
     return apiCall(async () => {
       // Here: DELETE /api/lessons/{lessonId}
       console.log('Admin cancelling lesson:', lessonId);
+
+      const tokenCost = Number(metadata.tokenCost || DEFAULT_LESSON_TOKEN_COST);
+      const role = metadata.role;
+      const currentBalances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+
+      if (role === 'student') {
+        const releasedAmount = Math.min(tokenCost, currentBalances.locked || 0);
+        const nextBalances = recalculateTotal({
+          ...currentBalances,
+          available: currentBalances.available + releasedAmount,
+          locked: clampNonNegative(currentBalances.locked - releasedAmount)
+        });
+        setUser(prev => ({ ...prev, tokenBalance: nextBalances.total, tokenBalances: nextBalances }));
+      } else if (role === 'teacher') {
+        const nextBalances = recalculateTotal({
+          ...currentBalances,
+          futureTutorEarnings: clampNonNegative((currentBalances.futureTutorEarnings || 0) - tokenCost)
+        });
+        setUser(prev => ({ ...prev, tokenBalance: nextBalances.total, tokenBalances: nextBalances }));
+      }
+
       addNotification('Lesson cancelled successfully', 'success');
       return { lessonId };
     });
@@ -160,7 +297,7 @@ export function AppProvider({ children }) {
   const login = async (email, password) => {
     return apiCall(async () => {
       // Here: POST /api/auth/login
-      console.log('Logging in:', email);
+      console.log('Logging in:', { email, hasPassword: Boolean(password) });
       // In real app: return { token, user }
       addNotification('Logged in successfully!', 'success');
       return { token: 'mock_token', user };
@@ -196,7 +333,7 @@ export function AppProvider({ children }) {
   const verifySecretAnswer = async (email, secretAnswer) => {
     return apiCall(async () => {
       // Here: POST /api/auth/verify-secret-answer
-      console.log('Verifying secret answer for:', email);
+      console.log('Verifying secret answer for:', { email, hasSecretAnswer: Boolean(secretAnswer) });
       return { verified: true, resetToken: 'mock_reset_token' };
     });
   };
@@ -204,7 +341,7 @@ export function AppProvider({ children }) {
   const resetPassword = async (email, resetToken, newPassword) => {
     return apiCall(async () => {
       // Here: POST /api/auth/reset-password
-      console.log('Resetting password for:', email);
+      console.log('Resetting password for:', { email, hasResetToken: Boolean(resetToken), hasNewPassword: Boolean(newPassword) });
       addNotification('Password reset successfully!', 'success');
       return { message: 'Password reset successfully' };
     });
@@ -214,18 +351,30 @@ export function AppProvider({ children }) {
   const getTokenBalance = async () => {
     return apiCall(async () => {
       // Here: GET /api/tokens/balance
-      return { balance: user.tokenBalance, pendingTransfers: 0 };
+      const balances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+      return {
+        balance: balances.total,
+        total: balances.total,
+        available: balances.available,
+        locked: balances.locked,
+        futureTutorEarnings: balances.futureTutorEarnings,
+        pendingTransfers: balances.locked
+      };
     });
   };
 
-  const buyTokens = async (amount, paymentDetails) => {
+  const buyTokens = async (amount) => {
     return apiCall(async () => {
       // Here: POST /api/tokens/buy
       console.log('Buying tokens:', amount);
-      const newBalance = user.tokenBalance + amount;
-      setUser(prev => ({ ...prev, tokenBalance: newBalance }));
+      const currentBalances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+      const nextBalances = recalculateTotal({
+        ...currentBalances,
+        available: currentBalances.available + amount
+      });
+      setUser(prev => ({ ...prev, tokenBalance: nextBalances.total, tokenBalances: nextBalances }));
       addNotification(`Successfully purchased ${amount} tokens!`, 'success');
-      return { success: true, newBalance, transactionId: 'txn_' + Date.now() };
+      return { success: true, newBalance: nextBalances.total, transactionId: 'txn_' + Date.now() };
     });
   };
 
@@ -233,14 +382,18 @@ export function AppProvider({ children }) {
     return apiCall(async () => {
       // Here: POST /api/tokens/transfer
       console.log('Transferring tokens:', { toUserId, amount, lessonId });
-      const newBalance = user.tokenBalance - amount;
-      setUser(prev => ({ ...prev, tokenBalance: newBalance }));
-      return { success: true, newBalance, transactionId: 'txn_' + Date.now() };
+      const currentBalances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+      const nextBalances = recalculateTotal({
+        ...currentBalances,
+        available: clampNonNegative(currentBalances.available - amount)
+      });
+      setUser(prev => ({ ...prev, tokenBalance: nextBalances.total, tokenBalances: nextBalances }));
+      return { success: true, newBalance: nextBalances.total, transactionId: 'txn_' + Date.now() };
     });
   };
 
   // Tutor operations (stubs for future API integration)
-  const getRecommendedTutors = async (limit = 10) => {
+  const getRecommendedTutors = async () => {
     return apiCall(async () => {
       // Here: GET /api/tutors/recommended?limit={limit}
       console.log('Getting recommended tutors');
@@ -265,13 +418,45 @@ export function AppProvider({ children }) {
     });
   };
 
-  const completeLesson = async (lessonId) => {
+  const completeLesson = async (lessonId, metadata = {}) => {
     return apiCall(async () => {
       // Here: PUT /api/lessons/{lessonId}/complete
       console.log('Completing lesson:', lessonId);
+
+      const tokenCost = Number(metadata.tokenCost || DEFAULT_LESSON_TOKEN_COST);
+      const role = metadata.role;
+      const currentBalances = user.tokenBalances || { total: user.tokenBalance || 0, available: user.tokenBalance || 0, locked: 0, futureTutorEarnings: 0 };
+
+      let nextBalances = currentBalances;
+      if (role === 'student') {
+        nextBalances = recalculateTotal({
+          ...currentBalances,
+          locked: clampNonNegative(currentBalances.locked - tokenCost)
+        });
+      } else if (role === 'teacher') {
+        nextBalances = recalculateTotal({
+          ...currentBalances,
+          available: currentBalances.available + tokenCost,
+          futureTutorEarnings: clampNonNegative((currentBalances.futureTutorEarnings || 0) - tokenCost)
+        });
+      }
+
+      setUser(prev => ({
+        ...prev,
+        tokenBalance: nextBalances.total,
+        tokenBalances: nextBalances
+      }));
+
       addNotification('Lesson marked as complete!', 'success');
       return { id: lessonId, status: 'completed' };
     });
+  };
+
+  const tokenSummary = user.tokenBalances || {
+    total: user.tokenBalance || 0,
+    available: user.tokenBalance || 0,
+    locked: 0,
+    futureTutorEarnings: 0
   };
 
   const rateLesson = async (lessonId, rating, comment) => {
@@ -290,6 +475,7 @@ export function AppProvider({ children }) {
     addNotification,
     removeNotification,
     loading,
+    tokenSummary,
     // Profile
     updateUserProfile,
     // Authentication
