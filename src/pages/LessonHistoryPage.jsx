@@ -21,7 +21,8 @@ export default function LessonHistoryPage() {
     return () => {
       isMounted = false;
     };
-  }, [getLessonHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: 16, display: 'grid', gap: 16 }}>

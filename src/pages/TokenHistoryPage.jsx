@@ -21,7 +21,8 @@ export default function TokenHistoryPage() {
     return () => {
       isMounted = false;
     };
-  }, [getTokenHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const formatDate = (value) => new Date(value).toLocaleString(isHe ? 'he-IL' : 'en-US');
 

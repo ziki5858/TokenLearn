@@ -37,7 +37,8 @@ export default function LessonRequestsPage() {
     return () => {
       isMounted = false;
     };
-  }, [getLessonRequestsAsStudent, getLessonRequestsAsTeacher]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Calculate time remaining until approval deadline (6 hours before lesson)
   const calculateTimeRemaining = useCallback((lessonDateTime) => {

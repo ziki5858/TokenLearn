@@ -1,9 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context/useApp";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import LoadingSpinner from "../components/LoadingSpinner";
+import CourseAutocomplete from "../components/CourseAutocomplete";
 import { useI18n } from "../i18n/useI18n";
+import { dedupeCoursesById, normalizeCourse } from "../lib/courseUtils";
 
 const cardStyle = {
   background: "linear-gradient(135deg, #ffffff 0%, #f4f7ff 100%)",
@@ -11,17 +13,81 @@ const cardStyle = {
   borderRadius: 16,
   padding: 16,
   boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)",
+  position: "relative",
   display: "grid",
   gap: 12
 };
+
+const normalizeCourses = (courses, fallbackId) => {
+  if (!Array.isArray(courses) || courses.length === 0) {
+    return [{ id: fallbackId, course: null }];
+  }
+
+  return courses.map((course, index) => ({
+    id: `${fallbackId}-${index}-${course?.id ?? "x"}`,
+    course: normalizeCourse(course)
+  }));
+};
+
+const normalizeAvailability = (availability, fallbackId, daysOfWeek) => {
+  const emptySlot = [{ id: fallbackId, days: [], startTime: "", endTime: "" }];
+  if (!Array.isArray(availability) || availability.length === 0) {
+    return emptySlot;
+  }
+
+  const dayOrder = new Map((daysOfWeek || []).map((day, index) => [day, index]));
+  const groupedByTime = new Map();
+
+  availability.forEach((slot, index) => {
+    const day = slot?.day || "";
+    const startTime = slot?.startTime || "";
+    const endTime = slot?.endTime || "";
+    const key = `${startTime}|${endTime}`;
+
+    if (!groupedByTime.has(key)) {
+      groupedByTime.set(key, {
+        id: slot?.id ?? `${fallbackId}-${index}`,
+        days: [],
+        startTime,
+        endTime
+      });
+    }
+
+    const current = groupedByTime.get(key);
+    if (day && !current.days.includes(day)) {
+      current.days.push(day);
+    }
+  });
+
+  const normalized = Array.from(groupedByTime.values()).map((slot, index) => ({
+    id: slot.id ?? `${fallbackId}-${index}`,
+    days: [...slot.days].sort((a, b) => (dayOrder.get(a) ?? 999) - (dayOrder.get(b) ?? 999)),
+    startTime: slot.startTime,
+    endTime: slot.endTime
+  }));
+
+  return normalized.length > 0 ? normalized : emptySlot;
+};
+
+const expandAvailabilitySlots = (availabilitySlots = []) => (
+  availabilitySlots.flatMap((slot) => {
+    const days = Array.isArray(slot?.days) ? slot.days : [];
+    return days.map((day) => ({
+      day,
+      startTime: slot.startTime,
+      endTime: slot.endTime
+    }));
+  })
+);
 
 
 
 export default function PersonalAreaPage() {
   const { language } = useI18n();
   const isHe = language === "he";
-  const { user, updateUserProfile, loading, addNotification } = useApp();
+  const { user, updateUserProfile, loading, addNotification, getCourses } = useApp();
   const DAYS_OF_WEEK = isHe ? ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayIndex = new Map(DAYS_OF_WEEK.map((day, index) => [day, index]));
   
   // Initialize state directly from user data
   const [firstName, setFirstName] = useState(user?.firstName || "");
@@ -32,97 +98,132 @@ export default function PersonalAreaPage() {
   const [hasChanges, setHasChanges] = useState(false);
 
   // Courses - initialize from user data or with defaults
-  const [coursesAsTeacher, setCoursesAsTeacher] = useState(
-    user?.coursesAsTeacher?.length > 0 
-      ? user.coursesAsTeacher 
-      : [{ id: 1, name: "" }]
-  );
-  const [coursesAsStudent, setCoursesAsStudent] = useState(
-    user?.coursesAsStudent?.length > 0 
-      ? user.coursesAsStudent 
-      : [{ id: 2, name: "" }]
-  );
+  const [coursesAsTeacher, setCoursesAsTeacher] = useState(normalizeCourses(user?.coursesAsTeacher, 1));
+  const [coursesAsStudent, setCoursesAsStudent] = useState(normalizeCourses(user?.coursesAsStudent, 2));
+  const [availableCourses, setAvailableCourses] = useState([]);
 
   // Availability - initialize from user data or with defaults
-  const [availabilityAsTeacher, setAvailabilityAsTeacher] = useState(
-    user?.availabilityAsTeacher?.length > 0 
-      ? user.availabilityAsTeacher 
-      : [{ id: 3, day: "", startTime: "", endTime: "" }]
-  );
-  const [availabilityAsStudent, setAvailabilityAsStudent] = useState(
-    user?.availabilityAsStudent?.length > 0 
-      ? user.availabilityAsStudent 
-      : [{ id: 4, day: "", startTime: "", endTime: "" }]
-  );
+  const [availabilityAsTeacher, setAvailabilityAsTeacher] = useState(normalizeAvailability(user?.availabilityAsTeacher, 3, DAYS_OF_WEEK));
 
   // About me - initialize from user data or with defaults
   const [aboutMeAsTeacher, setAboutMeAsTeacher] = useState(user?.aboutMeAsTeacher || "");
   const [aboutMeAsStudent, setAboutMeAsStudent] = useState(user?.aboutMeAsStudent || "");
 
-  const generalComplete = Boolean(firstName && lastName && phone);
+  const generalComplete = Boolean(firstName.trim() && lastName.trim() && phone.trim());
+  const blockedSectionMessage = isHe
+    ? "יש למלא קודם שם פרטי, שם משפחה וטלפון כדי לפתוח את השדות האלה."
+    : "Fill first name, last name, and phone first to unlock these fields.";
+
+  const notifyBlockedSection = () => {
+    addNotification(blockedSectionMessage, "info");
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCourses = async () => {
+      const result = await getCourses("", "", 5000);
+      if (!isMounted || !result.success) {
+        return;
+      }
+      const items = Array.isArray(result.data?.courses) ? result.data.courses : [];
+      setAvailableCourses(dedupeCoursesById(items));
+    };
+    loadCourses();
+
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+    };
+  }, []);
 
   function addCourseAsTeacher() {
-    setCoursesAsTeacher([...coursesAsTeacher, { id: Date.now(), name: "" }]);
+    setHasChanges(true);
+    setCoursesAsTeacher([...coursesAsTeacher, { id: Date.now(), course: null }]);
   }
 
   function removeCourseAsTeacher(id) {
     if (coursesAsTeacher.length > 1) {
+      setHasChanges(true);
       setCoursesAsTeacher(coursesAsTeacher.filter(c => c.id !== id));
     }
   }
 
-  function updateCourseAsTeacher(id, value) {
-    setCoursesAsTeacher(coursesAsTeacher.map(c => 
-      c.id === id ? { ...c, name: value } : c
+  function updateCourseAsTeacher(id, selectedCourse) {
+    setHasChanges(true);
+    setCoursesAsTeacher(coursesAsTeacher.map(c =>
+      c.id === id ? { ...c, course: normalizeCourse(selectedCourse) } : c
     ));
   }
 
   function addCourseAsStudent() {
-    setCoursesAsStudent([...coursesAsStudent, { id: Date.now(), name: "" }]);
+    setHasChanges(true);
+    setCoursesAsStudent([...coursesAsStudent, { id: Date.now(), course: null }]);
   }
 
   function removeCourseAsStudent(id) {
     if (coursesAsStudent.length > 1) {
+      setHasChanges(true);
       setCoursesAsStudent(coursesAsStudent.filter(c => c.id !== id));
     }
   }
 
-  function updateCourseAsStudent(id, value) {
-    setCoursesAsStudent(coursesAsStudent.map(c => 
-      c.id === id ? { ...c, name: value } : c
+  function updateCourseAsStudent(id, selectedCourse) {
+    setHasChanges(true);
+    setCoursesAsStudent(coursesAsStudent.map(c =>
+      c.id === id ? { ...c, course: normalizeCourse(selectedCourse) } : c
     ));
   }
 
   function addAvailabilityAsTeacher() {
-    setAvailabilityAsTeacher([...availabilityAsTeacher, { id: Date.now(), day: "", startTime: "", endTime: "" }]);
+    setHasChanges(true);
+    setAvailabilityAsTeacher([...availabilityAsTeacher, { id: Date.now(), days: [], startTime: "", endTime: "" }]);
   }
 
   function removeAvailabilityAsTeacher(id) {
     if (availabilityAsTeacher.length > 1) {
+      setHasChanges(true);
       setAvailabilityAsTeacher(availabilityAsTeacher.filter(a => a.id !== id));
     }
   }
 
   function updateAvailabilityAsTeacher(id, field, value) {
+    setHasChanges(true);
     setAvailabilityAsTeacher(availabilityAsTeacher.map(a => 
       a.id === id ? { ...a, [field]: value } : a
     ));
   }
 
-  function addAvailabilityAsStudent() {
-    setAvailabilityAsStudent([...availabilityAsStudent, { id: Date.now(), day: "", startTime: "", endTime: "" }]);
+  function toggleAvailabilityDayAsTeacher(id, day) {
+    setHasChanges(true);
+    setAvailabilityAsTeacher(availabilityAsTeacher.map((slot) => {
+      if (slot.id !== id) return slot;
+      const currentDays = Array.isArray(slot.days) ? slot.days : [];
+      const nextDays = currentDays.includes(day)
+        ? currentDays.filter((d) => d !== day)
+        : [...currentDays, day];
+      return {
+        ...slot,
+        days: nextDays.sort((a, b) => (dayIndex.get(a) ?? 999) - (dayIndex.get(b) ?? 999))
+      };
+    }));
   }
 
-  function removeAvailabilityAsStudent(id) {
-    if (availabilityAsStudent.length > 1) {
-      setAvailabilityAsStudent(availabilityAsStudent.filter(a => a.id !== id));
-    }
-  }
-
-  function updateAvailabilityAsStudent(id, field, value) {
-    setAvailabilityAsStudent(availabilityAsStudent.map(a => 
-      a.id === id ? { ...a, [field]: value } : a
-    ));
+  function toggleAllAvailabilityDaysAsTeacher(id) {
+    setHasChanges(true);
+    setAvailabilityAsTeacher(availabilityAsTeacher.map((slot) => {
+      if (slot.id !== id) return slot;
+      const currentDays = Array.isArray(slot.days) ? slot.days : [];
+      const isAllSelected = currentDays.length === DAYS_OF_WEEK.length;
+      return { ...slot, days: isAllSelected ? [] : [...DAYS_OF_WEEK] };
+    }));
   }
 
   function handleImageUrlChange(value) {
@@ -130,6 +231,7 @@ export default function PersonalAreaPage() {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
+    setHasChanges(true);
     setPhotoUrl(value);
   }
 
@@ -141,10 +243,11 @@ export default function PersonalAreaPage() {
     }
     const objectUrl = URL.createObjectURL(file);
     objectUrlRef.current = objectUrl;
+    setHasChanges(true);
     setPhotoUrl(objectUrl);
   }
 
-  function handleSave() {
+  async function handleSave() {
     // Validation
     if (!generalComplete) {
       addNotification(isHe ? "נא להשלים את הפרטים הכלליים לפני השמירה." : "Please complete the general details before saving.", "error");
@@ -152,16 +255,26 @@ export default function PersonalAreaPage() {
     }
 
     // Validate courses
-    const validCoursesTeacher = coursesAsTeacher.filter(c => c.name.trim());
-    const validCoursesStudent = coursesAsStudent.filter(c => c.name.trim());
+    const validCoursesTeacher = coursesAsTeacher
+      .map((row) => normalizeCourse(row.course))
+      .filter((course) => Number.isInteger(course?.id))
+      .map((course) => ({ id: course.id }));
+    const validCoursesStudent = coursesAsStudent
+      .map((row) => normalizeCourse(row.course))
+      .filter((course) => Number.isInteger(course?.id))
+      .map((course) => ({ id: course.id }));
 
     // Validate availability
-    const validAvailabilityTeacher = availabilityAsTeacher.filter(a => 
-      a.day && a.startTime && a.endTime
+    const validAvailabilityTeacherSlots = availabilityAsTeacher.filter(a => 
+      Array.isArray(a.days) && a.days.length > 0 && a.startTime && a.endTime
     );
-    const validAvailabilityStudent = availabilityAsStudent.filter(a => 
-      a.day && a.startTime && a.endTime
-    );
+    const validAvailabilityTeacher = expandAvailabilitySlots(validAvailabilityTeacherSlots);
+
+    const invalidTeacherTimeRange = validAvailabilityTeacherSlots.some(a => a.startTime >= a.endTime);
+    if (invalidTeacherTimeRange) {
+      addNotification(isHe ? "טווח שעות לא תקין בזמינות המורה." : "Invalid time range in teacher availability.", "error");
+      return;
+    }
 
     // Check for time conflicts in teacher availability
     const teacherConflicts = checkTimeConflicts(validAvailabilityTeacher);
@@ -170,30 +283,24 @@ export default function PersonalAreaPage() {
       return;
     }
 
-    // Check for time conflicts in student availability
-    const studentConflicts = checkTimeConflicts(validAvailabilityStudent);
-    if (studentConflicts.length > 0) {
-      addNotification(isHe ? "יש חפיפה בשעות הזמינות כתלמיד/ה!" : "You have overlapping time slots in student availability!", "error");
-      return;
-    }
-
     // Prepare data for save
     const profileData = {
-      firstName,
-      lastName,
-      phone,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone: phone.trim(),
       photoUrl,
       coursesAsTeacher: validCoursesTeacher,
       coursesAsStudent: validCoursesStudent,
       availabilityAsTeacher: validAvailabilityTeacher,
-      availabilityAsStudent: validAvailabilityStudent,
       aboutMeAsTeacher,
       aboutMeAsStudent
     };
 
     // Save via context
-    updateUserProfile(profileData);
-    setHasChanges(false);
+    const result = await updateUserProfile(profileData);
+    if (result.success) {
+      setHasChanges(false);
+    }
   }
 
   function checkTimeConflicts(availability) {
@@ -248,7 +355,7 @@ export default function PersonalAreaPage() {
       }}>
         <div>
           <div style={{ fontSize: 14, color: "#475569" }}>{isHe ? "הדירוג שלך כמורה" : "Your tutor rating"}</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{user.tutorRating.toFixed(1)}</div>
+          <div style={{ fontSize: 28, fontWeight: 800 }}>{Number(user?.tutorRating ?? 0).toFixed(1)}</div>
         </div>
         <div style={{
           padding: "10px 14px",
@@ -331,11 +438,13 @@ export default function PersonalAreaPage() {
             borderRadius: 8,
             border: "1px solid #e2e8f0"
           }}>
-            <Input
+            <CourseAutocomplete
               label={isHe ? `קורס ${index + 1}` : `Course ${index + 1}`}
-              value={course.name}
-              onChange={(value) => updateCourseAsTeacher(course.id, value)}
-              placeholder={isHe ? "למשל: מבוא לאלגוריתמים" : "e.g., Introduction to Algorithms"}
+              value={course.course}
+              onChange={(selected) => updateCourseAsTeacher(course.id, selected)}
+              options={availableCourses}
+              language={language}
+              placeholder={isHe ? "חיפוש לפי מספר קורס או שם" : "Search by course number or name"}
               disabled={!generalComplete}
             />
             <div style={{ display: "flex", alignItems: "flex-end" }}>
@@ -364,6 +473,21 @@ export default function PersonalAreaPage() {
         >
           + {isHe ? "הוספת קורס ללימוד" : "Add Course to Teach"}
         </Button>
+        {!generalComplete && (
+          <div
+            role="button"
+            tabIndex={0}
+            title={blockedSectionMessage}
+            onClick={notifyBlockedSection}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                notifyBlockedSection();
+              }
+            }}
+            style={lockedSectionOverlay}
+          />
+        )}
       </section>
 
       <section style={cardStyle}>
@@ -374,7 +498,7 @@ export default function PersonalAreaPage() {
         {availabilityAsTeacher.map((slot) => (
           <div key={slot.id} style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr auto",
+            gridTemplateColumns: "2fr 1fr 1fr auto",
             gap: 12,
             padding: 12,
             background: "#f8fafc",
@@ -382,25 +506,53 @@ export default function PersonalAreaPage() {
             border: "1px solid #e2e8f0"
           }}>
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "יום" : "Day"}</div>
-              <select
-                value={slot.day}
-                onChange={(e) => updateAvailabilityAsTeacher(slot.id, "day", e.target.value)}
-                disabled={!generalComplete}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #ddd",
-                  outline: "none",
-                  fontSize: 14,
-                  background: "white"
-                }}
-              >
-                <option value="">{isHe ? "בחר/י יום" : "Select day"}</option>
-                {DAYS_OF_WEEK.map(day => (
-                  <option key={day} value={day}>{day}</option>
-                ))}
-              </select>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "ימים" : "Days"}</div>
+                <button
+                  type="button"
+                  onClick={() => toggleAllAvailabilityDaysAsTeacher(slot.id)}
+                  disabled={!generalComplete}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    border: "1px solid #94a3b8",
+                    background: "white",
+                    color: "#0f172a",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: generalComplete ? "pointer" : "not-allowed"
+                  }}
+                >
+                  {(Array.isArray(slot.days) && slot.days.length === DAYS_OF_WEEK.length)
+                    ? (isHe ? "נקה הכל" : "Clear all")
+                    : (isHe ? "כל הימים" : "All days")}
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", minHeight: 42 }}>
+                {DAYS_OF_WEEK.map((day) => {
+                  const isSelected = Array.isArray(slot.days) && slot.days.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleAvailabilityDayAsTeacher(slot.id, day)}
+                      disabled={!generalComplete}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: 999,
+                        border: isSelected ? "1px solid #0284c7" : "1px solid #cbd5e1",
+                        background: isSelected ? "#e0f2fe" : "white",
+                        color: isSelected ? "#075985" : "#334155",
+                        fontWeight: isSelected ? 700 : 500,
+                        fontSize: 13,
+                        cursor: generalComplete ? "pointer" : "not-allowed"
+                      }}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
             </label>
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "שעת התחלה" : "Start Time"}</div>
@@ -460,6 +612,21 @@ export default function PersonalAreaPage() {
         >
           + {isHe ? "הוספת חלון זמן" : "Add Time Slot"}
         </Button>
+        {!generalComplete && (
+          <div
+            role="button"
+            tabIndex={0}
+            title={blockedSectionMessage}
+            onClick={notifyBlockedSection}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                notifyBlockedSection();
+              }
+            }}
+            style={lockedSectionOverlay}
+          />
+        )}
       </section>
 
       <section style={cardStyle}>
@@ -468,12 +635,27 @@ export default function PersonalAreaPage() {
           <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "ספר/י לנו על עצמך כמורה" : "Tell us about yourself as a teacher"}</div>
           <textarea
             value={aboutMeAsTeacher}
-            onChange={e => setAboutMeAsTeacher(e.target.value)}
+            onChange={e => { setAboutMeAsTeacher(e.target.value); setHasChanges(true); }}
             placeholder={isHe ? "שתף/י על סגנון ההוראה, החוזקות והניסיון שלך" : "Share your teaching style, strengths, and experience"}
             style={textareaStyle}
             disabled={!generalComplete}
           />
         </label>
+        {!generalComplete && (
+          <div
+            role="button"
+            tabIndex={0}
+            title={blockedSectionMessage}
+            onClick={notifyBlockedSection}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                notifyBlockedSection();
+              }
+            }}
+            style={lockedSectionOverlay}
+          />
+        )}
       </section>
 
       <section style={cardStyle}>
@@ -488,11 +670,13 @@ export default function PersonalAreaPage() {
             borderRadius: 8,
             border: "1px solid #e2e8f0"
           }}>
-            <Input
+            <CourseAutocomplete
               label={isHe ? `קורס ${index + 1}` : `Course ${index + 1}`}
-              value={course.name}
-              onChange={(value) => updateCourseAsStudent(course.id, value)}
-              placeholder={isHe ? "למשל: מבני נתונים" : "e.g., Data Structures"}
+              value={course.course}
+              onChange={(selected) => updateCourseAsStudent(course.id, selected)}
+              options={availableCourses}
+              language={language}
+              placeholder={isHe ? "חיפוש לפי מספר קורס או שם" : "Search by course number or name"}
               disabled={!generalComplete}
             />
             <div style={{ display: "flex", alignItems: "flex-end" }}>
@@ -521,102 +705,21 @@ export default function PersonalAreaPage() {
         >
           + {isHe ? "הוספת קורס ללמידה" : "Add Course to Learn"}
         </Button>
-      </section>
-
-      <section style={cardStyle}>
-        <h2 style={{ margin: 0 }}>{isHe ? "הזמינות שלי כתלמיד/ה" : "My Availability as a Student"}</h2>
-        <p style={{ margin: "0 0 8px", fontSize: 14, color: "#64748b" }}>
-          {isHe ? "הגדר/י את זמני הזמינות שלך ללמידה" : "Set your available time slots for learning"}
-        </p>
-        {availabilityAsStudent.map((slot) => (
-          <div key={slot.id} style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr auto",
-            gap: 12,
-            padding: 12,
-            background: "#f8fafc",
-            borderRadius: 8,
-            border: "1px solid #e2e8f0"
-          }}>
-            <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "יום" : "Day"}</div>
-              <select
-                value={slot.day}
-                onChange={(e) => updateAvailabilityAsStudent(slot.id, "day", e.target.value)}
-                disabled={!generalComplete}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #ddd",
-                  outline: "none",
-                  fontSize: 14,
-                  background: "white"
-                }}
-              >
-                <option value="">{isHe ? "בחר/י יום" : "Select day"}</option>
-                {DAYS_OF_WEEK.map(day => (
-                  <option key={day} value={day}>{day}</option>
-                ))}
-              </select>
-            </label>
-            <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "שעת התחלה" : "Start Time"}</div>
-              <input
-                type="time"
-                value={slot.startTime}
-                onChange={(e) => updateAvailabilityAsStudent(slot.id, "startTime", e.target.value)}
-                disabled={!generalComplete}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #ddd",
-                  outline: "none",
-                  fontSize: 14
-                }}
-              />
-            </label>
-            <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "שעת סיום" : "End Time"}</div>
-              <input
-                type="time"
-                value={slot.endTime}
-                onChange={(e) => updateAvailabilityAsStudent(slot.id, "endTime", e.target.value)}
-                disabled={!generalComplete}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #ddd",
-                  outline: "none",
-                  fontSize: 14
-                }}
-              />
-            </label>
-            <div style={{ display: "flex", alignItems: "flex-end" }}>
-              <button
-                onClick={() => removeAvailabilityAsStudent(slot.id)}
-                disabled={!generalComplete || availabilityAsStudent.length === 1}
-                style={{
-                  padding: "10px 14px",
-                  background: availabilityAsStudent.length === 1 ? "#e2e8f0" : "#fee2e2",
-                  color: availabilityAsStudent.length === 1 ? "#94a3b8" : "#991b1b",
-                  border: "1px solid",
-                  borderColor: availabilityAsStudent.length === 1 ? "#cbd5e1" : "#fecaca",
-                  borderRadius: 8,
-                  cursor: availabilityAsStudent.length === 1 ? "not-allowed" : "pointer",
-                  fontWeight: 600,
-                  fontSize: 14
-                }}
-              >{isHe ? "הסרה" : "Remove"}</button>
-            </div>
-          </div>
-        ))}
-        <Button
-          onClick={addAvailabilityAsStudent}
-          disabled={!generalComplete}
-          style={{ justifySelf: "start" }}
-        >
-          + {isHe ? "הוספת חלון זמן" : "Add Time Slot"}
-        </Button>
+        {!generalComplete && (
+          <div
+            role="button"
+            tabIndex={0}
+            title={blockedSectionMessage}
+            onClick={notifyBlockedSection}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                notifyBlockedSection();
+              }
+            }}
+            style={lockedSectionOverlay}
+          />
+        )}
       </section>
 
       <section style={cardStyle}>
@@ -625,15 +728,38 @@ export default function PersonalAreaPage() {
           <div style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "ספר/י לנו על עצמך כתלמיד/ה" : "Tell us about yourself as a student"}</div>
           <textarea
             value={aboutMeAsStudent}
-            onChange={e => setAboutMeAsStudent(e.target.value)}
+            onChange={e => { setAboutMeAsStudent(e.target.value); setHasChanges(true); }}
             placeholder={isHe ? "שתף/י את המטרות והעדפות הלמידה שלך ומה את/ה מחפש/ת במורה" : "Share your goals, learning preferences, and what you're looking for in a tutor"}
             style={textareaStyle}
             disabled={!generalComplete}
           />
         </label>
+        {!generalComplete && (
+          <div
+            role="button"
+            tabIndex={0}
+            title={blockedSectionMessage}
+            onClick={notifyBlockedSection}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                notifyBlockedSection();
+              }
+            }}
+            style={lockedSectionOverlay}
+          />
+        )}
       </section>
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div
+        style={{ display: "flex", justifyContent: "flex-end" }}
+        title={!generalComplete ? blockedSectionMessage : undefined}
+        onClick={() => {
+          if (!generalComplete) {
+            notifyBlockedSection();
+          }
+        }}
+      >
         <Button onClick={handleSave} disabled={!generalComplete}>{isHe ? "שמירה" : "Save"}</Button>
       </div>
     </div>
@@ -650,4 +776,14 @@ const textareaStyle = {
   resize: "vertical",
   fontFamily: "inherit",
   fontSize: 14
+};
+
+const lockedSectionOverlay = {
+  position: "absolute",
+  inset: 0,
+  borderRadius: 16,
+  background: "rgba(248, 250, 252, 0.64)",
+  border: "1px dashed #cbd5e1",
+  cursor: "not-allowed",
+  zIndex: 20
 };

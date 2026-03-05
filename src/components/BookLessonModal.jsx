@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useApp } from "../context/useApp";
 import Button from "./Button";
 import { useI18n } from "../i18n/useI18n";
+import CourseAutocomplete from "./CourseAutocomplete";
+import { dedupeCoursesById, getCourseDisplayName, normalizeCourse } from "../lib/courseUtils";
 
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -12,20 +14,20 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
   const localizeDay = (day) => (isHe ? (dayMap[day] || day) : day);
   const { createLessonRequest, addNotification, tokenSummary } = useApp();
   const [selectedSlotId, setSelectedSlotId] = useState(null);
-  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const [specificStartTime, setSpecificStartTime] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use tutor's availability from profile (API format: availabilityAsTeacher)
-  const availability = tutor?.availabilityAsTeacher || tutor?.availability || [
-    { id: 1, day: "Sunday", startTime: "18:00", endTime: "21:00" },
-    { id: 2, day: "Monday", startTime: "18:00", endTime: "21:00" },
-    { id: 3, day: "Wednesday", startTime: "17:00", endTime: "20:00" }
-  ];
+  const availability = tutor?.availabilityAsTeacher || tutor?.availability || [];
 
-  // Get courses from tutor profile (API format: courses array)
-  const courses = tutor?.courses || [];
+  const courseOptions = dedupeCoursesById(
+    Array.isArray(tutor?.courseOptions)
+      ? tutor.courseOptions
+      : Array.isArray(tutor?.coursesAsTeacher)
+        ? tutor.coursesAsTeacher
+        : []
+  );
 
   const selectedSlot = availability.find(slot => slot.id === selectedSlotId);
 
@@ -35,7 +37,8 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
       return;
     }
 
-    if (!selectedCourse) {
+    const selectedCourseNormalized = normalizeCourse(selectedCourse);
+    if (!selectedCourseNormalized?.id) {
       addNotification(isHe ? "נא לבחור קורס" : "Please select a course", "error");
       return;
     }
@@ -89,7 +92,8 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
     const requestData = {
       tutorId: tutor.id,
       tutorName: tutor.name,
-      course: selectedCourse,
+      courseId: selectedCourseNormalized.id,
+      course: getCourseDisplayName(selectedCourseNormalized, language),
       tokenCost: 1,
       requestedSlot: {
         day: selectedSlot.day,
@@ -148,25 +152,13 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
           {/* Course Selection */}
           <div style={styles.section}>
             <h3 style={{ margin: "0 0 12px 0", fontSize: 16 }}>{isHe ? "בחירת קורס *" : "Select Course *"}</h3>
-            <select
+            <CourseAutocomplete
               value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: "1px solid #e2e8f0",
-                fontSize: 14,
-                background: "white"
-              }}
-            >
-              <option value="">{isHe ? "בחר/י קורס" : "Select a course"}</option>
-              {courses.map((course, index) => (
-                <option key={index} value={course}>
-                  {course}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedCourse}
+              options={courseOptions}
+              language={language}
+              placeholder={isHe ? "חיפוש לפי מספר קורס או שם" : "Search by course number or name"}
+            />
           </div>
 
           {/* Available Time Slots */}

@@ -15,7 +15,9 @@ export const translations = {
       personalArea: 'Personal Area',
       rating: 'Rating',
       tokenHistory: 'Token History',
-      lessonHistory: 'Lesson History'
+      lessonHistory: 'Lesson History',
+      admin: 'Admin',
+      logout: 'Logout'
     },
     headerTopBar: {
       contactUs: 'Contact Us',
@@ -96,7 +98,9 @@ export const translations = {
       personalArea: 'אזור אישי',
       rating: 'דירוג',
       tokenHistory: 'היסטוריית טוקנים',
-      lessonHistory: 'היסטוריית שיעורים'
+      lessonHistory: 'היסטוריית שיעורים',
+      admin: 'ניהול',
+      logout: 'התנתקות'
     },
     headerTopBar: {
       contactUs: 'צור קשר',

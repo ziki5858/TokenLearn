@@ -1,6 +1,27 @@
 const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 let scriptPromise;
 
+function buildPromptError(notification) {
+  const notDisplayedReason = notification.getNotDisplayedReason?.();
+  const skippedReason = notification.getSkippedReason?.();
+  const dismissedReason = notification.getDismissedReason?.();
+
+  const reason = notDisplayedReason || skippedReason || dismissedReason;
+  if (!reason) {
+    return new Error('Google sign-in was cancelled.');
+  }
+
+  if (reason.includes('fedcm') || reason.includes('browser_not_supported')) {
+    return new Error('Google sign-in is blocked by browser FedCM settings. Enable third-party sign-in for this site and try again.');
+  }
+
+  if (reason.includes('invalid_client') || reason.includes('unregistered_origin')) {
+    return new Error('Google OAuth configuration mismatch. Check Authorized JavaScript origins and client ID.');
+  }
+
+  return new Error(`Google sign-in could not start (${reason}).`);
+}
+
 function loadGoogleScript() {
   if (window.google?.accounts?.id) {
     return Promise.resolve();
@@ -40,6 +61,7 @@ export async function getGoogleIdToken(clientId) {
 
     window.google.accounts.id.initialize({
       client_id: clientId,
+      use_fedcm_for_prompt: true,
       callback: (response) => {
         if (!response?.credential) {
           if (!settled) {
@@ -61,11 +83,13 @@ export async function getGoogleIdToken(clientId) {
         return;
       }
 
+      const notDisplayed = notification.isNotDisplayed?.();
       const skipped = notification.isSkippedMoment?.();
       const dismissed = notification.isDismissedMoment?.();
-      if (skipped || dismissed) {
+
+      if (notDisplayed || skipped || dismissed) {
         settled = true;
-        reject(new Error('Google sign-in was cancelled'));
+        reject(buildPromptError(notification));
       }
     });
   });

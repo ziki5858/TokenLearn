@@ -2,6 +2,15 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:808
 
 const AUTH_TOKEN_KEY = 'authToken';
 
+function createApiError(message, { status, code, payload } = {}) {
+  const error = new Error(message || 'Request failed');
+  error.name = 'ApiError';
+  error.status = status;
+  error.code = code;
+  error.payload = payload;
+  return error;
+}
+
 export function getApiBaseUrl() {
   return API_BASE_URL;
 }
@@ -21,11 +30,15 @@ export function setStoredAuthToken(token) {
 export async function apiRequest(path, options = {}) {
   const url = `${API_BASE_URL}${path}`;
   const token = getStoredAuthToken();
+  const isFormDataBody = typeof FormData !== 'undefined' && options.body instanceof FormData;
 
   const headers = {
-    'Content-Type': 'application/json',
     ...(options.headers || {})
   };
+
+  if (!isFormDataBody && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -36,12 +49,32 @@ export async function apiRequest(path, options = {}) {
     headers
   });
 
+  if (response.status === 204) {
+    return null;
+  }
+
   const contentType = response.headers.get('content-type') || '';
-  const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+  const payload = contentType.includes('application/json')
+    ? await response.json()
+    : contentType.includes('text/')
+      ? await response.text()
+      : null;
 
   if (!response.ok) {
-    const message = typeof payload === 'string' ? payload : payload?.message || payload?.errorCode || 'Request failed';
-    throw new Error(message);
+    const message = typeof payload === 'string'
+      ? payload
+      : payload?.error?.message || payload?.message || payload?.errorCode || 'Request failed';
+    const code = typeof payload === 'object' ? payload?.error?.code || payload?.errorCode : undefined;
+    throw createApiError(message, { status: response.status, code, payload });
+  }
+
+  // Server responses are wrapped as { success, data, error }.
+  if (payload && typeof payload === 'object' && typeof payload.success === 'boolean') {
+    if (!payload.success) {
+      const message = payload?.error?.message || 'Request failed';
+      throw createApiError(message, { status: response.status, code: payload?.error?.code, payload });
+    }
+    return payload.data;
   }
 
   return payload;
@@ -52,8 +85,9 @@ export function normalizeAuthPayload(payload) {
     return { token: null, user: null, raw: payload };
   }
 
-  const token = payload.token || payload.jwt || payload.jwtToken || payload.accessToken || payload.access_token || null;
-  const user = payload.user || payload.profile || payload.userDto || payload.currentUser || null;
+  const source = payload.data && typeof payload.data === 'object' ? payload.data : payload;
+  const token = source.token || source.jwt || source.jwtToken || source.accessToken || source.access_token || null;
+  const user = source.user || source.profile || source.userDto || source.currentUser || null;
 
   return { token, user, raw: payload };
 }

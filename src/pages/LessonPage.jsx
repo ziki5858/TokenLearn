@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useApp } from "../context/useApp";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import ConfirmModal from "../components/ConfirmModal";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { useI18n } from "../i18n/useI18n";
 
 export default function LessonPage() {
@@ -11,7 +12,7 @@ export default function LessonPage() {
   const isHe = language === "he";
   const { id: lessonId } = useParams();
   const navigate = useNavigate();
-  const { completeLesson, rateLesson, cancelLesson, addNotification } = useApp();
+  const { completeLesson, rateLesson, cancelLesson, getLessonDetails, addNotification, loading } = useApp();
   
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRatingForm, setShowRatingForm] = useState(false);
@@ -19,10 +20,9 @@ export default function LessonPage() {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock lesson data - will be fetched from GET /api/lessons/{lessonId}
   const [lesson, setLesson] = useState({
     id: lessonId || 1,
-    role: "student", // "student" or "teacher" - current user's role in this lesson
+    role: "student",
     studentId: "student_1",
     studentName: "John Doe",
     tutorId: "tutor_1",
@@ -31,13 +31,31 @@ export default function LessonPage() {
     course: "Algorithms - Dynamic Programming",
     dateTime: "2025-12-24T18:00:00",
     endTime: "2025-12-24T19:00:00",
-    status: "scheduled", // scheduled, in-progress, completed, cancelled
+    status: "scheduled",
     message: "I need help understanding memoization and tabulation approaches.",
     tokenCost: 1,
     completedAt: null,
     ratedAt: null,
     myRating: null
   });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadLesson = async () => {
+      if (!lessonId) return;
+      const result = await getLessonDetails(lessonId);
+      if (!isMounted || !result.success || !result.data) return;
+      setLesson((prev) => ({ ...prev, ...result.data }));
+    };
+
+    loadLesson();
+
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessonId]);
 
   const isStudent = lesson.role === "student";
   const otherPersonName = isStudent ? lesson.tutorName : lesson.studentName;
@@ -139,6 +157,7 @@ export default function LessonPage() {
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 16 }}>
+      {loading && <LoadingSpinner fullScreen />}
       <button 
         onClick={() => navigate(-1)}
         style={{
@@ -158,7 +177,6 @@ export default function LessonPage() {
 
       <Card>
         <div style={{ display: "grid", gap: 24 }}>
-          {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
             <div>
               <h1 style={{ margin: "0 0 8px 0", fontSize: 24 }}>{lesson.course}</h1>
@@ -169,7 +187,6 @@ export default function LessonPage() {
             {getStatusBadge(lesson.status)}
           </div>
 
-          {/* Participant Info */}
           <div style={styles.infoCard}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={styles.avatar}>
@@ -189,7 +206,6 @@ export default function LessonPage() {
             </div>
           </div>
 
-          {/* Date & Time */}
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>📅 {isHe ? "תאריך ושעה" : "Date & Time"}</h3>
             <div style={{ fontSize: 16 }}>
@@ -200,7 +216,6 @@ export default function LessonPage() {
             </div>
           </div>
 
-          {/* Message */}
           {lesson.message && (
             <div style={styles.section}>
               <h3 style={styles.sectionTitle}>💬 {isHe ? "הודעה" : "Message"}</h3>
@@ -217,7 +232,6 @@ export default function LessonPage() {
             </div>
           )}
 
-          {/* Actions based on status */}
           {lesson.status === "scheduled" && (
             <div style={styles.actions}>
               <Button onClick={handleStartLesson}>
@@ -248,7 +262,6 @@ export default function LessonPage() {
             </div>
           )}
 
-          {/* Rating Form */}
           {showRatingForm && (
             <div style={styles.ratingSection}>
               <h3 style={styles.sectionTitle}>⭐ {isHe ? "דרג/י את השיעור" : "Rate Your Lesson"}</h3>
@@ -306,7 +319,6 @@ export default function LessonPage() {
             </div>
           )}
 
-          {/* Show submitted rating */}
           {lesson.myRating && (
             <div style={styles.ratingSection}>
               <h3 style={styles.sectionTitle}>{isHe ? "הדירוג שלך" : "Your Rating"}</h3>
@@ -325,7 +337,6 @@ export default function LessonPage() {
             </div>
           )}
 
-          {/* Cancelled message */}
           {lesson.status === "cancelled" && (
             <div style={{
               padding: 16,
@@ -341,7 +352,6 @@ export default function LessonPage() {
         </div>
       </Card>
 
-      {/* Cancel Confirmation Modal */}
       <ConfirmModal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}

@@ -25,24 +25,29 @@ export default function CreateUserPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const cleanFirstName = firstName.trim();
+    const cleanLastName = lastName.trim();
+    const cleanEmail = email.trim();
+    const cleanSecretQuestion = secretQuestion.trim();
+    const cleanSecretAnswer = secretAnswer.trim();
 
     if (password !== confirmPassword) {
       addNotification(t('auth.passwordsNoMatch'), 'error');
       return;
     }
 
-    if (!firstName || !lastName || !email || !password || !secretQuestion || !secretAnswer) {
+    if (!cleanFirstName || !cleanLastName || !cleanEmail || !password || !cleanSecretQuestion || !cleanSecretAnswer) {
       addNotification(t('auth.fillAllFields'), 'error');
       return;
     }
 
     const response = await register({
-      firstName,
-      lastName,
-      email,
+      firstName: cleanFirstName,
+      lastName: cleanLastName,
+      email: cleanEmail,
       password,
-      secretQuestion,
-      secretAnswer
+      secretQuestion: cleanSecretQuestion,
+      secretAnswer: cleanSecretAnswer
     });
 
     if (!response.success) {
@@ -50,7 +55,7 @@ export default function CreateUserPage() {
     }
 
     addNotification(t('auth.userCreated'), 'success');
-    navigate('/me');
+    navigate('/me', { replace: true });
   }
 
 
@@ -69,7 +74,7 @@ export default function CreateUserPage() {
       }
 
       addNotification(t('auth.googleLoginSuccess'), 'success');
-      navigate('/me');
+      navigate('/me', { replace: true });
     } catch (error) {
       addNotification(error.message || t('auth.googleLoginFailed'), 'error');
     }
@@ -103,7 +108,7 @@ export default function CreateUserPage() {
             <Input label={t('auth.email')} type="email" value={email} onChange={setEmail} placeholder="name@example.com" />
             <Input label={t('auth.password')} type="password" value={password} onChange={setPassword} placeholder="••••••••" />
             <Input label={t('auth.confirmPassword')} type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" />
-            <Input label={t('auth.secretQuestion')} type="text" value={secretQuestion} onChange={setSecretQuestion} placeholder="e.g., What is your pet's name?" />
+            <Input label={t('auth.secretQuestion')} type="text" value={secretQuestion} onChange={setSecretQuestion} placeholder="e.g., Pet name" />
             <Input label={t('auth.answer')} type="text" value={secretAnswer} onChange={setSecretAnswer} placeholder="Your answer" />
 
             <Button type="submit">{t('auth.createAccount')}</Button>

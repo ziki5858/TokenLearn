@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -15,8 +15,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const { addNotification, login, googleLogin } = useApp();
   const { t, isRTL } = useI18n();
+  const redirectPath = location.state?.from?.pathname || '/home';
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,7 +26,7 @@ export default function LoginPage() {
     if (!response.success) {
       return;
     }
-    navigate('/home');
+    navigate(redirectPath, { replace: true });
   }
 
   async function handleGoogleLogin() {
@@ -41,7 +43,7 @@ export default function LoginPage() {
         return;
       }
       addNotification(t('auth.googleLoginSuccess'), 'success');
-      navigate('/home');
+      navigate(redirectPath, { replace: true });
     } catch (error) {
       addNotification(error.message || t('auth.googleLoginFailed'), 'error');
     }

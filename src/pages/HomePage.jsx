@@ -1,16 +1,30 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useApp } from "../context/useApp";
 import HeaderTopBar from "../components/HeaderTopBar";
 import RecommendedTutors from "../components/RecommendedTutors";
 import PendingRequests from "../components/PendingRequests";
 import FooterStoryAndRules from "../components/FooterStoryAndRules";
 import ConfirmModal from "../components/ConfirmModal";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { useI18n } from "../i18n/useI18n";
 
 export default function HomePage() {
   const { language } = useI18n();
   const isHe = language === "he";
-  const { user, approveLessonRequest, rejectLessonRequest, addNotification, contactAdmin } = useApp();
+  const {
+    user,
+    approveLessonRequest,
+    rejectLessonRequest,
+    addNotification,
+    contactAdmin,
+    getRecommendedTutors,
+    getLessonRequestsAsTeacher,
+    getUpcomingLessons,
+    loading
+  } = useApp();
+  const [tutors, setTutors] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [upcomingLessons, setUpcomingLessons] = useState([]);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectionMessage, setRejectionMessage] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState(null);
@@ -18,89 +32,30 @@ export default function HomePage() {
   const [contactMessage, setContactMessage] = useState("");
   const [contactSubject, setContactSubject] = useState("");
 
-  // Recommended tutors - matching API format (GET /api/tutors/recommended)
-  const tutors = [
-    { 
-      id: 1, 
-      name: "Daniel Cohen", 
-      rating: 4.9, 
-      courses: ["Algorithms", "Data Structures"],
-      photoUrl: "",
-      availabilityAsTeacher: [
-        { id: 1, day: "Sunday", startTime: "18:00", endTime: "21:00" }
-      ]
-    },
-    { 
-      id: 2, 
-      name: "Noa Levi", 
-      rating: 4.7, 
-      courses: ["SQL", "Database Design"],
-      photoUrl: "",
-      availabilityAsTeacher: [
-        { id: 1, day: "Monday", startTime: "17:00", endTime: "20:00" }
-      ]
-    }
-  ];
+  useEffect(() => {
+    let isMounted = true;
 
-  // Pending requests as teacher - matching API format (GET /api/lesson-requests/teacher)
-  const requests = [
-    {
-      id: 1,
-      studentId: "student_1",
-      studentName: "Itai",
-      course: "SQL practice",
-      requestedSlot: {
-        day: "Monday",
-        startTime: "17:00",
-        endTime: "20:00",
-        specificStartTime: "18:00",
-        specificEndTime: "19:00"
-      },
-      message: "Need help with queries",
-      status: "pending",
-      requestedAt: "2025-12-22T10:30:00",
-      lessonDateTime: "2025-12-23T18:00:00"
-    },
-    {
-      id: 2,
-      studentId: "student_2",
-      studentName: "Sarah",
-      course: "Algorithms",
-      requestedSlot: {
-        day: "Tuesday",
-        startTime: "16:00",
-        endTime: "19:00",
-        specificStartTime: "16:00",
-        specificEndTime: "17:00"
-      },
-      message: "Review sorting algorithms",
-      status: "pending",
-      requestedAt: "2025-12-22T09:15:00",
-      lessonDateTime: "2025-12-24T16:00:00"
-    }
-  ];
+    const loadData = async () => {
+      const [tutorsResult, requestsResult, upcomingResult] = await Promise.all([
+        getRecommendedTutors(),
+        getLessonRequestsAsTeacher('pending'),
+        getUpcomingLessons()
+      ]);
 
-  // Upcoming lessons - matching API format (GET /api/lessons/upcoming)
-  const upcomingLessons = [
-    {
-      id: 1,
-      role: "teacher",
-      withUserId: "user_1",
-      withUserName: "Noa Levi",
-      topic: "Data Structures",
-      dateTime: "2025-12-24T17:00:00",
-      status: "scheduled"
-    },
-    {
-      id: 2,
-      role: "student",
-      withUserId: "user_2",
-      withUserName: "Dr. Amir",
-      topic: "SQL Joins & Indexing",
-      dateTime: "2025-12-26T19:30:00",
-      status: "scheduled"
-    }
-  ];
+      if (!isMounted) return;
+
+      setTutors(tutorsResult.success ? (Array.isArray(tutorsResult.data) ? tutorsResult.data : []) : []);
+      setRequests(requestsResult.success ? (Array.isArray(requestsResult.data) ? requestsResult.data : []) : []);
+      setUpcomingLessons(upcomingResult.success ? (Array.isArray(upcomingResult.data) ? upcomingResult.data : []) : []);
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cardStyle = {
     background: "linear-gradient(135deg, #ffffff 0%, #f4f7ff 100%)",
@@ -204,6 +159,7 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: "100vh" }}>
+      {loading && <LoadingSpinner fullScreen />}
       <HeaderTopBar
         tutorRating={user.tutorRating}
         onContactUs={() => {
@@ -220,7 +176,9 @@ export default function HomePage() {
           onApprove={async (requestId) => {
             const result = await approveLessonRequest(requestId);
             if (result.success) {
-              // In real app, update state or refetch data
+              setRequests(prev => prev.map((request) => (
+                request.id === requestId ? { ...request, status: 'approved' } : request
+              )));
               addNotification("Lesson approved!", "success");
             }
           }}
@@ -231,7 +189,6 @@ export default function HomePage() {
           }}
         />
 
-        {/* Rejection Modal */}
         {rejectModalOpen && (
           <div style={styles.overlay} onClick={() => setRejectModalOpen(false)}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
@@ -263,6 +220,9 @@ export default function HomePage() {
                     }
                     const result = await rejectLessonRequest(selectedRequestId, rejectionMessage);
                     if (result.success) {
+                      setRequests(prev => prev.map((request) => (
+                        request.id === selectedRequestId ? { ...request, status: 'rejected', rejectionReason: rejectionMessage } : request
+                      )));
                       addNotification(isHe ? "הבקשה נדחתה" : "Lesson rejected", "info");
                       setRejectModalOpen(false);
                     }
@@ -276,7 +236,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* {isHe ? "יצירת קשר עם מנהל" : "Contact Admin"} Modal */}
         {contactModalOpen && (
           <div style={styles.overlay} onClick={() => setContactModalOpen(false)}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
@@ -293,7 +252,7 @@ export default function HomePage() {
                     type="text"
                     value={contactSubject}
                     onChange={e => setContactSubject(e.target.value)}
-                    placeholder={isHe ? "על מה מדובר?" : "What is this about?"}
+                    placeholder={isHe ? "נושא הפנייה" : "Contact subject"}
                     style={{
                       padding: "10px 12px",
                       borderRadius: 10,

@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import TokenBalanceMenu from '../components/TokenBalanceMenu';
 import { useI18n } from '../i18n/useI18n';
@@ -6,8 +6,9 @@ import { useApp } from '../context/useApp';
 
 export default function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { t, isRTL } = useI18n();
-  const { tokenSummary } = useApp();
+  const { tokenSummary, logout, user } = useApp();
 
   const isActive = (path) => location.pathname === path;
 
@@ -27,6 +28,11 @@ export default function AppLayout() {
     cursor: 'pointer',
     whiteSpace: 'nowrap'
   });
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} style={styles.page}>
@@ -54,10 +60,18 @@ export default function AppLayout() {
             <Link to="/lesson-history" style={getNavLinkStyle('/lesson-history')}>
               📚 {t('nav.lessonHistory')}
             </Link>
+            {user?.isAdmin && (
+              <Link to="/admin" style={getNavLinkStyle('/admin')}>
+                🔧 {t('nav.admin')}
+              </Link>
+            )}
           </nav>
 
           <div style={styles.controls}>
             <TokenBalanceMenu tokenSummary={tokenSummary} />
+            <button type="button" onClick={handleLogout} style={styles.logoutBtn}>
+              🚪 {t('nav.logout')}
+            </button>
             <LanguageSwitcher />
           </div>
         </div>
@@ -111,6 +125,16 @@ const styles = {
     gap: 10,
     alignItems: 'center',
     flexWrap: 'wrap'
+  },
+  logoutBtn: {
+    padding: '10px 14px',
+    borderRadius: 12,
+    border: '1px solid #fecaca',
+    background: 'linear-gradient(135deg, #fee2e2, #fecaca)',
+    color: '#991b1b',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: 'pointer'
   },
   main: {
     padding: '0 24px 32px',

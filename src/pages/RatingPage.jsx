@@ -20,7 +20,8 @@ export default function RatingPage() {
     return () => {
       isMounted = false;
     };
-  }, [getUserRatings, user.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
 
   const { averageRating, totalRatings, ratings } = ratingsData;
 
@@ -31,7 +32,7 @@ export default function RatingPage() {
       <div style={{ background: "linear-gradient(135deg, #ffffff 0%, #f4f7ff 100%)", border: "1px solid #dbeafe", borderRadius: 16, padding: 16, boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div style={{ fontSize: 14, color: "#475569" }}>{isHe ? 'דירוג ממוצע מתלמידים' : 'Average rating from students'}</div>
-          <div style={{ fontSize: 30, fontWeight: 800 }}>{averageRating.toFixed(2)}</div>
+          <div style={{ fontSize: 30, fontWeight: 800 }}>{Number(averageRating || 0).toFixed(2)}</div>
         </div>
         <div style={{ padding: "10px 14px", borderRadius: 999, background: "linear-gradient(135deg, #22d3ee, #0ea5e9)", color: "#0b1021", fontWeight: 700, border: "1px solid #0ea5e9" }}>
           {isHe ? `מבוסס על ${totalRatings} שיעורים` : `Based on ${totalRatings} lessons`}
@@ -43,7 +44,7 @@ export default function RatingPage() {
           <div key={rating.id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "white", boxShadow: "0 8px 20px rgba(15, 23, 42, 0.06)", display: "grid", gap: 6 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <div style={{ fontWeight: 700, fontSize: 16 }}>{isHe ? 'מאת' : 'From'}: {rating.ratedBy}</div>
-              <div style={{ padding: "6px 10px", borderRadius: 999, background: "#ecfeff", color: "#0ea5e9", fontWeight: 700 }}>{rating.rating.toFixed(1)} ★</div>
+              <div style={{ padding: "6px 10px", borderRadius: 999, background: "#ecfeff", color: "#0ea5e9", fontWeight: 700 }}>{Number(rating.rating || 0).toFixed(1)} ★</div>
             </div>
             <div style={{ color: "#1f2937", fontSize: 14 }}>{rating.comment}</div>
           </div>

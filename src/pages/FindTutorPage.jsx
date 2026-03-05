@@ -1,95 +1,75 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import BookLessonModal from "../components/BookLessonModal";
 import ViewProfileModal from "../components/ViewProfileModal";
+import CourseAutocomplete from "../components/CourseAutocomplete";
 import { useI18n } from "../i18n/useI18n";
-
-const sampleTutors = [
-  { 
-    id: 1, 
-    name: "Daniel Cohen", 
-    courses: ["20431 - Introduction to Algorithms", "20432 - Data Structures"], 
-    rating: 4.9, 
-    lessons: 42,
-    photoUrl: "",
-    availabilityAsTeacher: [
-      { id: 1, day: "Sunday", startTime: "18:00", endTime: "21:00" },
-      { id: 2, day: "Tuesday", startTime: "17:00", endTime: "20:00" }
-    ],
-    aboutMeAsTeacher: "Experienced tutor with 5 years of teaching algorithms and data structures."
-  },
-  { 
-    id: 2, 
-    name: "Noa Levi", 
-    courses: ["20431 - Introduction to Algorithms"], 
-    rating: 4.6, 
-    lessons: 28,
-    photoUrl: "",
-    availabilityAsTeacher: [
-      { id: 1, day: "Monday", startTime: "18:00", endTime: "21:00" }
-    ],
-    aboutMeAsTeacher: "Passionate about making algorithms accessible to everyone."
-  },
-  { 
-    id: 3, 
-    name: "Amir Katz", 
-    courses: ["10823 - SQL Fundamentals"], 
-    rating: 4.2, 
-    lessons: 15,
-    photoUrl: "",
-    availabilityAsTeacher: [
-      { id: 1, day: "Wednesday", startTime: "19:00", endTime: "22:00" }
-    ],
-    aboutMeAsTeacher: "Database expert with industry experience."
-  },
-  { 
-    id: 4, 
-    name: "Sarah Klein", 
-    courses: ["30112 - Machine Learning"], 
-    rating: 5.0, 
-    lessons: 60,
-    photoUrl: "",
-    availabilityAsTeacher: [
-      { id: 1, day: "Thursday", startTime: "16:00", endTime: "20:00" }
-    ],
-    aboutMeAsTeacher: "PhD in Machine Learning, love teaching complex concepts simply."
-  },
-  { 
-    id: 5, 
-    name: "Yossi Halevi", 
-    courses: ["10823 - SQL Fundamentals", "10824 - Advanced SQL"], 
-    rating: 3.8, 
-    lessons: 8,
-    photoUrl: "",
-    availabilityAsTeacher: [
-      { id: 1, day: "Friday", startTime: "10:00", endTime: "14:00" }
-    ],
-    aboutMeAsTeacher: "New tutor eager to help students succeed."
-  }
-];
+import { useApp } from "../context/useApp";
+import { dedupeCoursesById, normalizeCourse } from "../lib/courseUtils";
 
 export default function FindTutorPage() {
-  const [courseNumber, setCourseNumber] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const [minRating, setMinRating] = useState("1");
   const [minLessons, setMinLessons] = useState("0");
   const [selectedTutorForBooking, setSelectedTutorForBooking] = useState(null);
   const [selectedTutorForProfile, setSelectedTutorForProfile] = useState(null);
+  const [tutors, setTutors] = useState([]);
+  const [courseOptions, setCourseOptions] = useState([]);
   const { language } = useI18n();
   const isHe = language === "he";
+  const { searchTutors, loading, getCourses } = useApp();
 
-  const handleBook = (bookingData) => {
-    console.log("Booking data:", bookingData);
-    // Here you would typically send to backend
-  };
+  useEffect(() => {
+    let isMounted = true;
+    const loadCourses = async () => {
+      const result = await getCourses("", "", 5000);
+      if (!isMounted || !result.success) {
+        return;
+      }
+      const items = Array.isArray(result.data?.courses) ? result.data.courses : [];
+      setCourseOptions(dedupeCoursesById(items));
+    };
+    loadCourses();
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTutors = async () => {
+      const minRatingNumber = Number(minRating || 1);
+      const selected = normalizeCourse(selectedCourse);
+      const courseQuery = selected?.courseNumber || selected?.nameHe || selected?.nameEn || selected?.name || undefined;
+      const result = await searchTutors({
+        course: courseQuery,
+        minRating: Number.isNaN(minRatingNumber) ? undefined : minRatingNumber,
+        limit: 50
+      });
+
+      if (!isMounted) return;
+      setTutors(result.success && Array.isArray(result.data) ? result.data : []);
+    };
+
+    loadTutors();
+
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCourse, minRating]);
+
+  const handleBook = () => {};
 
   const filteredTutors = useMemo(() => {
-    return sampleTutors.filter(t => {
-      const byCourse = courseNumber.trim() === "" || 
-        t.courses.some(course => course.toLowerCase().includes(courseNumber.trim().toLowerCase()));
+    return tutors.filter(t => {
       const byRating = t.rating >= Number(minRating || 1);
-      const byLessons = t.lessons >= Number(minLessons || 0);
-      return byCourse && byRating && byLessons;
+      const lessonsCount = t.lessons ?? t.totalLessonsAsTutor ?? 0;
+      const byLessons = lessonsCount >= Number(minLessons || 0);
+      return byRating && byLessons;
     });
-  }, [courseNumber, minRating, minLessons]);
+  }, [minRating, minLessons, tutors]);
 
   return (
     <>
@@ -112,15 +92,14 @@ export default function FindTutorPage() {
           boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)"
         }}
       >
-        <div style={{ display: "grid", gap: 6 }}>
-          <label style={{ fontWeight: 700 }}>{isHe ? "מספר קורס" : "Course Number"}</label>
-          <input
-            value={courseNumber}
-            onChange={e => setCourseNumber(e.target.value)}
-            placeholder={isHe ? "לדוגמה: 20431" : "e.g., 20431"}
-            style={inputStyle}
-          />
-        </div>
+        <CourseAutocomplete
+          label={isHe ? "קורס" : "Course"}
+          value={selectedCourse}
+          onChange={setSelectedCourse}
+          options={courseOptions}
+          language={language}
+          placeholder={isHe ? "חיפוש לפי מספר קורס או שם" : "Search by course number or name"}
+        />
 
         <div style={{ display: "grid", gap: 6 }}>
           <label style={{ fontWeight: 700 }}>{isHe ? "דירוג מינימלי (1-5)" : "Min Rating (1-5)"}</label>
@@ -149,6 +128,11 @@ export default function FindTutorPage() {
       </div>
 
       <div style={{ display: "grid", gap: 12 }}>
+        {loading && (
+          <div style={{ color: "#64748b", fontSize: 14 }}>
+            {isHe ? "טוען מורים..." : "Loading tutors..."}
+          </div>
+        )}
         {filteredTutors.map(t => (
           <div
             key={t.id}
@@ -167,7 +151,7 @@ export default function FindTutorPage() {
             <div style={{ display: "grid", gap: 4 }}>
               <div style={{ fontWeight: 700, fontSize: 16 }}>{t.name}</div>
               <div style={{ color: "#475569", fontSize: 14 }}>
-                {isHe ? "קורסים" : "Courses"}: {t.courses.join(", ")} • {isHe ? "דירוג" : "Rating"}: {t.rating} • {isHe ? "שיעורים" : "Lessons"}: {t.lessons}
+                {isHe ? "קורסים" : "Courses"}: {(Array.isArray(t.courses) ? t.courses : []).join(", ")} • {isHe ? "דירוג" : "Rating"}: {t.rating} • {isHe ? "שיעורים" : "Lessons"}: {t.lessons ?? t.totalLessonsAsTutor ?? 0}
               </div>
             </div>
 

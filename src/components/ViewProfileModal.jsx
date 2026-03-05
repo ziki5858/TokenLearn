@@ -1,6 +1,7 @@
 import React from "react";
 import Button from "./Button";
 import { useI18n } from "../i18n/useI18n";
+import { getCourseDisplayName, normalizeCourse } from "../lib/courseUtils";
 
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -9,24 +10,25 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
   const isHe = language === "he";
   const dayMap = { Sunday: 'ראשון', Monday: 'שני', Tuesday: 'שלישי', Wednesday: 'רביעי', Thursday: 'חמישי', Friday: 'שישי', Saturday: 'שבת' };
   const localizeDay = (day) => (isHe ? (dayMap[day] || day) : day);
-  // Mock data - in real app, this would come from backend
-  const availability = tutor?.availabilityAsTeacher || tutor?.availability || [
-    { id: 1, day: "Sunday", startTime: "18:00", endTime: "21:00" },
-    { id: 2, day: "Monday", startTime: "18:00", endTime: "21:00" },
-    { id: 3, day: "Wednesday", startTime: "17:00", endTime: "20:00" }
-  ];
+  const availability = tutor?.availabilityAsTeacher || tutor?.availability || [];
 
-  const rawCourses = tutor?.coursesAsTeacher || tutor?.courses || [
-    { id: 1, name: tutor?.course || `${isHe ? "קורס" : "Course"} ${tutor?.courseNumber || (isHe ? "לא זמין" : "N/A")}` }
-  ];
+  const rawCourses = tutor?.coursesAsTeacher || tutor?.courses || [];
 
   // המרה: אם זה מחרוזת -> הפוך לאובייקט. אם זה כבר אובייקט -> תשאיר אותו.
-  const courses = rawCourses.map((c, index) => 
-    typeof c === 'string' ? { id: index, name: c } : c
-  );
+  const courses = rawCourses
+    .map((c, index) => {
+      const normalized = normalizeCourse(c);
+      if (!normalized) {
+        return null;
+      }
+      return {
+        id: normalized.id ?? index,
+        display: getCourseDisplayName(normalized, language)
+      };
+    })
+    .filter(Boolean);
 
-  const aboutMe = tutor?.aboutMeAsTeacher || tutor?.about || 
-    isHe ? "מורה מנוסה עם תשוקה לעזור לסטודנטים להשיג את היעדים שלהם. אני מתמקד/ת בבסיס חזק ובפתרון בעיות מעשי." : "Experienced tutor passionate about helping students achieve their goals. I focus on building strong fundamentals and practical problem-solving skills.";
+  const aboutMe = tutor?.aboutMeAsTeacher || tutor?.about || "";
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -70,13 +72,19 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
           {/* Courses Teaching */}
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>{isHe ? "קורסים שאני מלמד/ת" : "Courses I Teach"}</h3>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {courses.map(course => (
-                <div key={course.id} style={styles.coursePill}>
-                  {course.name}
-                </div>
-              ))}
-            </div>
+            {courses.length > 0 ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {courses.map(course => (
+                  <div key={course.id} style={styles.coursePill}>
+                    {course.display}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={styles.noAvailability}>
+                {isHe ? "לא הוזן מידע על קורסים" : "No courses information provided"}
+              </div>
+            )}
           </div>
 
           {/* Availability */}

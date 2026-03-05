@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useApp } from "../context/useApp";
 import HeaderTopBar from "../components/HeaderTopBar";
 import Card from "../components/Card";
@@ -9,44 +9,187 @@ import { useI18n } from "../i18n/useI18n";
 export default function AdminPage() {
   const { language } = useI18n();
   const isHe = language === "he";
-  const { user, loading, cancelLesson, blockTutor, unblockTutor, getAdminDashboard, getAdminUsers, getAdminStatistics, getAdminLessons, adjustUserTokens } = useApp();
+  const {
+    user,
+    loading,
+    cancelLesson,
+    blockTutor,
+    unblockTutor,
+    getAdminDashboard,
+    getAdminUsers,
+    getAdminStatistics,
+    getAdminLessons,
+    adjustUserTokens,
+    updateAdminUser,
+    deleteAdminUser,
+    addNotification
+  } = useApp();
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [statistics, setStatistics] = useState(null);
   const [tokenAdjustments, setTokenAdjustments] = useState({});
+  const [editingUser, setEditingUser] = useState(null);
   const [activeTab, setActiveTab] = useState("users");
+
+  const applyAdminSnapshot = (dashboardResult, usersResult, statisticsResult, lessonsResult) => {
+    if (dashboardResult.success) setDashboard(dashboardResult.data);
+    if (usersResult.success) setUsers(usersResult.data || []);
+    if (statisticsResult.success) setStatistics(statisticsResult.data);
+    if (lessonsResult.success) setLessons(lessonsResult.data || []);
+  };
+
+  const fetchAdminSnapshot = () => Promise.all([
+    getAdminDashboard(),
+    getAdminUsers(),
+    getAdminStatistics(),
+    getAdminLessons()
+  ]);
+
+  const refreshAdminData = async () => {
+    const [dashboardResult, usersResult, statisticsResult, lessonsResult] = await fetchAdminSnapshot();
+    applyAdminSnapshot(dashboardResult, usersResult, statisticsResult, lessonsResult);
+  };
 
   useEffect(() => {
     let isMounted = true;
 
     const loadAdminData = async () => {
-      const [dashboardResult, usersResult, statisticsResult, lessonsResult] = await Promise.all([
-        getAdminDashboard(),
-        getAdminUsers(),
-        getAdminStatistics(),
-        getAdminLessons()
-      ]);
-
+      const [dashboardResult, usersResult, statisticsResult, lessonsResult] = await fetchAdminSnapshot();
       if (!isMounted) return;
-
-      if (dashboardResult.success) setDashboard(dashboardResult.data);
-      if (usersResult.success) setUsers(usersResult.data || []);
-      if (statisticsResult.success) setStatistics(statisticsResult.data);
-      if (lessonsResult.success) setLessons(lessonsResult.data || []);
+      applyAdminSnapshot(dashboardResult, usersResult, statisticsResult, lessonsResult);
     };
 
     loadAdminData();
     return () => {
       isMounted = false;
     };
-  }, [getAdminDashboard, getAdminUsers, getAdminStatistics, getAdminLessons]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const filteredUsers = users.filter((u) => {
-    const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
-    return fullName.includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredUsers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return users;
+    return users.filter((u) => {
+      const fullName = `${u.firstName || ""} ${u.lastName || ""}`.toLowerCase();
+      const phone = (u.phone || "").toLowerCase();
+      const email = (u.email || "").toLowerCase();
+      return fullName.includes(query) || email.includes(query) || phone.includes(query);
+    });
+  }, [searchQuery, users]);
+
+  const openEditDialog = (targetUser) => {
+    setEditingUser({
+      id: targetUser.id,
+      email: targetUser.email || "",
+      firstName: targetUser.firstName || "",
+      lastName: targetUser.lastName || "",
+      phone: targetUser.phone || "",
+      photoUrl: targetUser.photoUrl || "",
+      aboutMeAsTeacher: targetUser.aboutMeAsTeacher || "",
+      aboutMeAsStudent: targetUser.aboutMeAsStudent || "",
+      isAdmin: Boolean(targetUser.isAdmin),
+      isActive: targetUser.isActive !== false,
+      blockedTutor: Boolean(targetUser.blockedTutor)
+    });
+  };
+
+  const closeEditDialog = () => {
+    setEditingUser(null);
+  };
+
+  const updateEditingField = (field, value) => {
+    setEditingUser((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const nullIfBlank = (value) => {
+    if (value == null) return null;
+    const trimmed = String(value).trim();
+    return trimmed ? trimmed : null;
+  };
+
+  const handleAdjustTokens = async (targetUserId) => {
+    const rawValue = tokenAdjustments[targetUserId];
+    const amount = Number(rawValue);
+    if (!Number.isFinite(amount) || amount === 0) {
+      addNotification(isHe ? "יש להזין מספר שונה מ-0." : "Please enter a non-zero number.", "error");
+      return;
+    }
+
+    const result = await adjustUserTokens(targetUserId, amount);
+    if (result.success) {
+      setTokenAdjustments((prev) => ({
+        ...prev,
+        [targetUserId]: ""
+      }));
+      await refreshAdminData();
+    }
+  };
+
+  const handleToggleBlockedTutor = async (targetUser) => {
+    const result = targetUser.blockedTutor
+      ? await unblockTutor(targetUser.id)
+      : await blockTutor(targetUser.id);
+    if (result.success) {
+      await refreshAdminData();
+    }
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+
+    if (!editingUser.email.trim() || !editingUser.firstName.trim() || !editingUser.lastName.trim()) {
+      addNotification(
+        isHe ? "אימייל, שם פרטי ושם משפחה הם שדות חובה." : "Email, first name and last name are required.",
+        "error"
+      );
+      return;
+    }
+
+    const result = await updateAdminUser(editingUser.id, {
+      email: editingUser.email.trim(),
+      firstName: editingUser.firstName.trim(),
+      lastName: editingUser.lastName.trim(),
+      phone: nullIfBlank(editingUser.phone),
+      photoUrl: nullIfBlank(editingUser.photoUrl),
+      aboutMeAsTeacher: nullIfBlank(editingUser.aboutMeAsTeacher),
+      aboutMeAsStudent: nullIfBlank(editingUser.aboutMeAsStudent),
+      isAdmin: Boolean(editingUser.isAdmin),
+      isBlockedTutor: Boolean(editingUser.blockedTutor),
+      isActive: Boolean(editingUser.isActive)
+    });
+
+    if (result.success) {
+      closeEditDialog();
+      await refreshAdminData();
+    }
+  };
+
+  const handleDeleteUser = async (targetUser) => {
+    if (targetUser.id === user.id) {
+      addNotification(isHe ? "לא ניתן למחוק את המשתמש שמחובר כעת." : "You cannot delete the currently signed-in user.", "error");
+      return;
+    }
+
+    const approved = window.confirm(
+      isHe
+        ? `למחוק את המשתמש ${targetUser.email} לצמיתות? כל הנתונים שלו יימחקו.`
+        : `Delete ${targetUser.email} permanently? All related data will be removed.`
+    );
+    if (!approved) return;
+
+    const result = await deleteAdminUser(targetUser.id);
+    if (result.success) {
+      if (editingUser?.id === targetUser.id) {
+        closeEditDialog();
+      }
+      await refreshAdminData();
+    }
+  };
 
   if (!user.isAdmin) {
     return (
@@ -98,7 +241,7 @@ export default function AdminPage() {
               <div style={styles.searchWrap}>
                 <Input
                   label={isHe ? "חיפוש" : "Search"}
-                  placeholder={isHe ? "חיפוש לפי שם או אימייל" : "Search by name or email"}
+                  placeholder={isHe ? "חיפוש לפי שם, אימייל או טלפון" : "Search by name, email or phone"}
                   value={searchQuery}
                   onChange={setSearchQuery}
                 />
@@ -116,13 +259,25 @@ export default function AdminPage() {
 
             <div style={styles.tableShell}>
               <table style={styles.table}>
+                <colgroup>
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "20%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "12%" }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th style={styles.th}>{isHe ? "שם" : "Name"}</th>
                     <th style={styles.th}>{isHe ? "אימייל" : "Email"}</th>
+                    <th style={styles.th}>{isHe ? "טלפון" : "Phone"}</th>
                     <th style={styles.th}>{isHe ? "סוג" : "Type"}</th>
                     <th style={styles.th}>{isHe ? "טוקנים" : "Tokens"}</th>
                     <th style={styles.th}>{isHe ? "דירוג" : "Rating"}</th>
+                    <th style={styles.th}>{isHe ? "סטטוס" : "Status"}</th>
                     <th style={styles.th}>{isHe ? "פעולות" : "Actions"}</th>
                   </tr>
                 </thead>
@@ -131,20 +286,60 @@ export default function AdminPage() {
                     const roleLabel = isHe ? "תלמיד/ה + מורה" : "Student + Tutor";
                     return (
                       <tr key={u.id}>
-                        <td style={styles.tdStrong}>{u.firstName} {u.lastName}</td>
-                        <td style={styles.td}>{u.email}</td>
-                        <td style={styles.td}>
-                          <span style={styles.roleBoth}>{roleLabel}</span>
+                        <td style={styles.tdStrong}>
+                          <div style={styles.nameCell}>
+                            <span>{u.firstName} {u.lastName}</span>
+                            <span style={styles.userIdHint}>#{u.id}</span>
+                          </div>
                         </td>
                         <td style={styles.td}>
-                          <span style={styles.tokenBadge}>{u.tokenBalance}</span>
+                          <span style={styles.emailCell} dir="ltr">{u.email}</span>
                         </td>
-                        <td style={styles.td}>{u.tutorRating ?? (isHe ? "לא זמין" : "N/A")}</td>
+                        <td style={styles.td}>
+                          <span dir="ltr">{u.phone || "-"}</span>
+                        </td>
+                        <td style={styles.td}>
+                          <div style={styles.badgesWrap}>
+                            <span style={styles.roleBoth}>{roleLabel}</span>
+                            {u.isAdmin && <span style={styles.roleAdmin}>{isHe ? "מנהל/ת" : "Admin"}</span>}
+                          </div>
+                        </td>
+                        <td style={styles.td}>
+                          <div style={styles.tokenCell}>
+                            <span style={styles.tokenBadge}>{u.tokenBalance ?? 0}</span>
+                            <span style={styles.tokenSplit}>
+                              {isHe ? "זמין" : "Avail"}: {u.available ?? 0} | {isHe ? "נעול" : "Locked"}: {u.locked ?? 0}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={styles.td}>
+                          {Number(u.tutorRating ?? 0).toFixed(1)}
+                        </td>
+                        <td style={styles.td}>
+                          <div style={styles.badgesWrap}>
+                            <span style={u.isActive ? styles.statusActive : styles.statusInactive}>
+                              {u.isActive ? (isHe ? "פעיל" : "Active") : (isHe ? "לא פעיל" : "Inactive")}
+                            </span>
+                            <span style={u.blockedTutor ? styles.statusBlocked : styles.statusUnblocked}>
+                              {u.blockedTutor ? (isHe ? "מורה חסום" : "Tutor blocked") : (isHe ? "מורה פתוח" : "Tutor open")}
+                            </span>
+                          </div>
+                        </td>
                         <td style={styles.td}>
                           <div style={styles.actionsWrap}>
                             <div style={styles.teacherActions}>
-                              <button style={styles.blockBtn} onClick={() => blockTutor(u.id)}>{isHe ? "חסימה" : "Block"}</button>
-                              <button style={styles.unblockBtn} onClick={() => unblockTutor(u.id)}>{isHe ? "ביטול חסימה" : "Unblock"}</button>
+                              <button
+                                style={u.blockedTutor ? styles.unblockBtn : styles.blockBtn}
+                                onClick={() => handleToggleBlockedTutor(u)}
+                              >
+                                {u.blockedTutor ? (isHe ? "ביטול חסימה" : "Unblock") : (isHe ? "חסימת מורה" : "Block tutor")}
+                              </button>
+                              <button style={styles.editBtn} onClick={() => openEditDialog(u)}>
+                                {isHe ? "עריכה" : "Edit"}
+                              </button>
+                              <button style={styles.deleteBtn} onClick={() => handleDeleteUser(u)}>
+                                {isHe ? "מחיקה" : "Delete"}
+                              </button>
                             </div>
                             <div style={styles.adjustRow}>
                               <input
@@ -156,7 +351,7 @@ export default function AdminPage() {
                               />
                               <button
                                 style={styles.adjustBtn}
-                                onClick={() => adjustUserTokens(u.id, Number(tokenAdjustments[u.id] || 0))}
+                                onClick={() => handleAdjustTokens(u.id)}
                               >
                                 {isHe ? 'עדכן' : 'Adjust'}
                               </button>
@@ -205,6 +400,99 @@ export default function AdminPage() {
           </Card>
         )}
       </main>
+
+      {editingUser && (
+        <div style={styles.modalBackdrop} onClick={closeEditDialog}>
+          <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, marginBottom: 12 }}>
+              {isHe ? "עריכת משתמש" : "Edit User"} #{editingUser.id}
+            </h3>
+
+            <div style={styles.modalFormGrid}>
+              <Input
+                label={isHe ? "אימייל" : "Email"}
+                value={editingUser.email}
+                onChange={(value) => updateEditingField("email", value)}
+              />
+              <Input
+                label={isHe ? "שם פרטי" : "First name"}
+                value={editingUser.firstName}
+                onChange={(value) => updateEditingField("firstName", value)}
+              />
+              <Input
+                label={isHe ? "שם משפחה" : "Last name"}
+                value={editingUser.lastName}
+                onChange={(value) => updateEditingField("lastName", value)}
+              />
+              <Input
+                label={isHe ? "טלפון" : "Phone"}
+                value={editingUser.phone}
+                onChange={(value) => updateEditingField("phone", value)}
+              />
+              <Input
+                label={isHe ? "קישור תמונה" : "Photo URL"}
+                value={editingUser.photoUrl}
+                onChange={(value) => updateEditingField("photoUrl", value)}
+              />
+            </div>
+
+            <label style={styles.textareaLabel}>
+              <span>{isHe ? "עליי כמורה" : "About me as teacher"}</span>
+              <textarea
+                value={editingUser.aboutMeAsTeacher}
+                onChange={(e) => updateEditingField("aboutMeAsTeacher", e.target.value)}
+                style={styles.textarea}
+              />
+            </label>
+
+            <label style={styles.textareaLabel}>
+              <span>{isHe ? "עליי כתלמיד/ה" : "About me as student"}</span>
+              <textarea
+                value={editingUser.aboutMeAsStudent}
+                onChange={(e) => updateEditingField("aboutMeAsStudent", e.target.value)}
+                style={styles.textarea}
+              />
+            </label>
+
+            <div style={styles.switchesRow}>
+              <label style={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(editingUser.isAdmin)}
+                  onChange={(e) => updateEditingField("isAdmin", e.target.checked)}
+                  disabled={editingUser.id === user.id}
+                />
+                <span>{isHe ? "הרשאת מנהל" : "Admin role"}</span>
+              </label>
+              <label style={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(editingUser.blockedTutor)}
+                  onChange={(e) => updateEditingField("blockedTutor", e.target.checked)}
+                />
+                <span>{isHe ? "חסימת מורה" : "Tutor blocked"}</span>
+              </label>
+              <label style={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(editingUser.isActive)}
+                  onChange={(e) => updateEditingField("isActive", e.target.checked)}
+                />
+                <span>{isHe ? "משתמש פעיל" : "Active user"}</span>
+              </label>
+            </div>
+
+            <div style={styles.modalActions}>
+              <button style={styles.cancelOutlineBtn} onClick={closeEditDialog}>
+                {isHe ? "ביטול" : "Cancel"}
+              </button>
+              <button style={styles.saveBtn} onClick={handleSaveUser}>
+                {isHe ? "שמירה" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -253,9 +541,9 @@ const styles = {
     overflowX: 'auto',
     background: '#fff'
   },
-  table: { width: "100%", minWidth: 920, borderCollapse: "collapse" },
+  table: { width: "100%", minWidth: 1300, borderCollapse: "collapse", tableLayout: "fixed" },
   th: {
-    textAlign: "left",
+    textAlign: "start",
     padding: "12px 10px",
     borderBottom: "1px solid #e2e8f0",
     background: '#f8fafc',
@@ -263,8 +551,18 @@ const styles = {
     fontSize: 13,
     fontWeight: 700
   },
-  td: { padding: "12px 10px", borderBottom: "1px solid #f1f5f9", verticalAlign: 'top' },
-  tdStrong: { padding: "12px 10px", borderBottom: "1px solid #f1f5f9", verticalAlign: 'top', fontWeight: 700, color: '#0f172a' },
+  td: {
+    padding: "12px 10px",
+    borderBottom: "1px solid #f1f5f9",
+    verticalAlign: 'middle',
+    textAlign: "start",
+    color: '#1f2937',
+    overflowWrap: 'anywhere'
+  },
+  tdStrong: { padding: "12px 10px", borderBottom: "1px solid #f1f5f9", verticalAlign: 'middle', textAlign: "start", fontWeight: 700, color: '#0f172a' },
+  nameCell: { display: 'grid', gap: 3 },
+  userIdHint: { fontSize: 12, color: '#64748b', fontWeight: 500 },
+  emailCell: { display: 'inline-block', maxWidth: '100%', overflowWrap: 'anywhere' },
   roleTutor: {
     padding: '4px 10px',
     borderRadius: 999,
@@ -289,6 +587,53 @@ const styles = {
     fontSize: 12,
     fontWeight: 700
   },
+  roleAdmin: {
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#ede9fe',
+    color: '#5b21b6',
+    fontSize: 12,
+    fontWeight: 700
+  },
+  badgesWrap: {
+    display: 'flex',
+    gap: 6,
+    flexWrap: 'wrap',
+    alignItems: 'center'
+  },
+  statusActive: {
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#dcfce7',
+    color: '#166534',
+    fontSize: 12,
+    fontWeight: 700
+  },
+  statusInactive: {
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#fef2f2',
+    color: '#991b1b',
+    fontSize: 12,
+    fontWeight: 700
+  },
+  statusBlocked: {
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#fee2e2',
+    color: '#b91c1c',
+    fontSize: 12,
+    fontWeight: 700
+  },
+  statusUnblocked: {
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#ecfeff',
+    color: '#0e7490',
+    fontSize: 12,
+    fontWeight: 700
+  },
+  tokenCell: { display: 'grid', gap: 4 },
   tokenBadge: {
     padding: '4px 9px',
     borderRadius: 8,
@@ -297,15 +642,18 @@ const styles = {
     fontWeight: 700,
     color: '#0f172a'
   },
+  tokenSplit: { fontSize: 12, color: '#64748b' },
   overviewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 },
   metricCard: { border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, background: '#f8fafc' },
   metricLabel: { fontSize: 13, color: '#475569' },
   metricValue: { fontSize: 24, fontWeight: 800, color: '#0f172a' },
-  actionsWrap: { display: 'grid', gap: 8, minWidth: 0 },
+  actionsWrap: { display: 'grid', gap: 8, minWidth: 0, justifyItems: 'start' },
   teacherActions: { display: 'flex', gap: 6, flexWrap: 'wrap' },
   adjustRow: { display: 'flex', gap: 6 },
   blockBtn: { padding: "6px 10px", borderRadius: 8, border: "1px solid #dc2626", background: "#dc2626", color: "white", whiteSpace: 'nowrap' },
   unblockBtn: { padding: "6px 10px", borderRadius: 8, border: "1px solid #059669", background: "#059669", color: "white", whiteSpace: 'nowrap' },
+  editBtn: { padding: "6px 10px", borderRadius: 8, border: "1px solid #0284c7", background: "#0284c7", color: "white", whiteSpace: 'nowrap' },
+  deleteBtn: { padding: "6px 10px", borderRadius: 8, border: "1px solid #7f1d1d", background: "#7f1d1d", color: "white", whiteSpace: 'nowrap' },
   tokenInput: { width: 96, borderRadius: 8, border: '1px solid #cbd5e1', padding: '6px 8px' },
   adjustBtn: { padding: '6px 10px', borderRadius: 8, border: '1px solid #0ea5e9', background: '#0ea5e9', color: 'white', whiteSpace: 'nowrap' },
   cancelBtn: { padding: "6px 10px", borderRadius: 8, border: "1px solid #f59e0b", background: "#f59e0b", color: "white" },
@@ -315,5 +663,85 @@ const styles = {
     color: '#64748b',
     background: '#f8fafc',
     borderTop: '1px solid #e2e8f0'
+  },
+  modalBackdrop: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(15, 23, 42, 0.46)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 200
+  },
+  modalCard: {
+    width: 'min(860px, calc(100vw - 24px))',
+    maxHeight: 'calc(100vh - 32px)',
+    overflowY: 'auto',
+    borderRadius: 14,
+    border: '1px solid #dbeafe',
+    background: 'white',
+    padding: 16,
+    boxShadow: '0 20px 40px rgba(15, 23, 42, 0.24)',
+    display: 'grid',
+    gap: 12
+  },
+  modalFormGrid: {
+    display: 'grid',
+    gap: 10,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
+  },
+  textareaLabel: {
+    display: 'grid',
+    gap: 6,
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: 600
+  },
+  textarea: {
+    minHeight: 90,
+    borderRadius: 10,
+    border: '1px solid #cbd5e1',
+    padding: '8px 10px',
+    fontFamily: 'inherit',
+    fontSize: 14,
+    resize: 'vertical'
+  },
+  switchesRow: {
+    display: 'flex',
+    gap: 14,
+    flexWrap: 'wrap'
+  },
+  checkboxLabel: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 10px',
+    borderRadius: 10,
+    border: '1px solid #e2e8f0',
+    background: '#f8fafc',
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#334155'
+  },
+  modalActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: 8
+  },
+  cancelOutlineBtn: {
+    padding: '8px 12px',
+    borderRadius: 8,
+    border: '1px solid #cbd5e1',
+    background: 'white',
+    color: '#334155',
+    fontWeight: 700
+  },
+  saveBtn: {
+    padding: '8px 12px',
+    borderRadius: 8,
+    border: '1px solid #0284c7',
+    background: '#0284c7',
+    color: 'white',
+    fontWeight: 700
   }
 };
