@@ -296,6 +296,12 @@ export default function TokenHistoryPage() {
             const meta = getTypeMeta(transaction.type, transaction.amount);
             const copy = getTransactionCopy(transaction);
             const positive = Number(transaction.amount || 0) >= 0;
+            const scheduledAt = parseFlexibleDate(transaction.scheduledAt);
+            const hasLessonContext = Boolean(
+              transaction.courseLabel
+              || transaction.tutorName
+              || isValidDate(scheduledAt)
+            );
 
             return (
               <div key={transaction.id} style={styles.card} dir={isHe ? 'rtl' : 'ltr'}>
@@ -321,6 +327,29 @@ export default function TokenHistoryPage() {
                   <span style={styles.detailLabel}>{isHe ? 'פירוט' : 'Details'}</span>
                   <span style={styles.detailText}>{copy.detail}</span>
                 </div>
+
+                {hasLessonContext && (
+                  <div style={styles.contextGrid}>
+                    {transaction.courseLabel && (
+                      <div style={styles.contextItem}>
+                        <span style={styles.contextLabel}>{isHe ? 'קורס' : 'Course'}</span>
+                        <span style={styles.contextValue}>{transaction.courseLabel}</span>
+                      </div>
+                    )}
+                    {transaction.tutorName && (
+                      <div style={styles.contextItem}>
+                        <span style={styles.contextLabel}>{isHe ? 'מורה' : 'Tutor'}</span>
+                        <span style={styles.contextValue}>{transaction.tutorName}</span>
+                      </div>
+                    )}
+                    {isValidDate(scheduledAt) && (
+                      <div style={styles.contextItem}>
+                        <span style={styles.contextLabel}>{isHe ? 'מועד השיעור' : 'Lesson time'}</span>
+                        <span style={styles.contextValue}>{formatDate(transaction.scheduledAt)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -413,6 +442,29 @@ const styles = {
     fontSize: 14,
     color: '#334155',
     lineHeight: 1.5
+  },
+  contextGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: 10,
+    padding: '12px',
+    borderRadius: 12,
+    background: '#f8fafc',
+    border: '1px dashed #cbd5e1'
+  },
+  contextItem: {
+    display: 'grid',
+    gap: 4
+  },
+  contextLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#64748b'
+  },
+  contextValue: {
+    fontSize: 14,
+    color: '#0f172a',
+    lineHeight: 1.4
   },
   empty: {
     background: '#f8fafc',
