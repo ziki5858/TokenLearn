@@ -654,6 +654,13 @@ export function AppProvider({ children }) {
     });
   };
 
+  const getAdminRatings = async (limit = 200, offset = 0) => {
+    return apiCall(async () => {
+      const payload = await apiRequest(`/api/admin/ratings${toQueryString({ limit, offset })}`);
+      return firstArray(payload, ['ratings', 'items']);
+    });
+  };
+
   const adjustUserTokens = async (userId, amount, reason = 'admin_adjustment') => {
     return apiCall(async () => {
       return apiRequest(`/api/admin/users/${userId}/tokens`, {
@@ -669,6 +676,17 @@ export function AppProvider({ children }) {
         method: 'PUT',
         body: JSON.stringify(userData)
       });
+    });
+  };
+
+  const updateAdminRating = async (ratingId, ratingData) => {
+    return apiCall(async () => {
+      const payload = await apiRequest(`/api/admin/ratings/${ratingId}`, {
+        method: 'PUT',
+        body: JSON.stringify(ratingData)
+      });
+      addNotification(getUiMessage('ratingUpdated'), 'success');
+      return payload;
     });
   };
 
@@ -850,8 +868,10 @@ export function AppProvider({ children }) {
     getAdminUsers,
     getAdminStatistics,
     getAdminLessons,
+    getAdminRatings,
     adjustUserTokens,
     updateAdminUser,
+    updateAdminRating,
     deleteAdminUser,
     blockTutor,
     unblockTutor

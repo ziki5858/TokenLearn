@@ -68,6 +68,10 @@ const UI_MESSAGES = {
   lessonApproved: {
     he: "השיעור אושר.",
     en: "Lesson approved."
+  },
+  ratingUpdated: {
+    he: "הדירוג עודכן בהצלחה.",
+    en: "Rating updated successfully."
   }
 };
 

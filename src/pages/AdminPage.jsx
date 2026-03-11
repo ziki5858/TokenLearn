@@ -15,53 +15,62 @@ export default function AdminPage() {
   const {
     user,
     loading,
-    cancelLesson,
     blockTutor,
     unblockTutor,
     getAdminDashboard,
     getAdminUsers,
     getAdminStatistics,
     getAdminLessons,
+    getAdminRatings,
     adjustUserTokens,
     updateAdminUser,
+    updateAdminRating,
     deleteAdminUser,
     addNotification
   } = useApp();
   const [searchQuery, setSearchQuery] = useState("");
+  const [ratingSearchQuery, setRatingSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [lessons, setLessons] = useState([]);
+  const [ratings, setRatings] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [statistics, setStatistics] = useState(null);
   const [tokenAdjustments, setTokenAdjustments] = useState({});
   const [editingUser, setEditingUser] = useState(null);
+  const [editingRating, setEditingRating] = useState(null);
   const [activeTab, setActiveTab] = useState("users");
+  const editDialogRef = useRef(null);
+  const portalTarget = typeof document === "undefined" ? null : document.body;
+  const isAnyDialogOpen = editingUser !== null;
 
-  const applyAdminSnapshot = (dashboardResult, usersResult, statisticsResult, lessonsResult) => {
+  const applyAdminSnapshot = (dashboardResult, usersResult, statisticsResult, lessonsResult, ratingsResult) => {
     if (dashboardResult.success) setDashboard(dashboardResult.data);
     if (usersResult.success) setUsers(usersResult.data || []);
     if (statisticsResult.success) setStatistics(statisticsResult.data);
     if (lessonsResult.success) setLessons(lessonsResult.data || []);
+    if (ratingsResult.success) setRatings(ratingsResult.data || []);
   };
 
   const fetchAdminSnapshot = () => Promise.all([
     getAdminDashboard(),
     getAdminUsers(),
     getAdminStatistics(),
-    getAdminLessons()
+    getAdminLessons(),
+    getAdminRatings()
   ]);
 
   const refreshAdminData = async () => {
-    const [dashboardResult, usersResult, statisticsResult, lessonsResult] = await fetchAdminSnapshot();
-    applyAdminSnapshot(dashboardResult, usersResult, statisticsResult, lessonsResult);
+    const [dashboardResult, usersResult, statisticsResult, lessonsResult, ratingsResult] = await fetchAdminSnapshot();
+    applyAdminSnapshot(dashboardResult, usersResult, statisticsResult, lessonsResult, ratingsResult);
   };
 
   useEffect(() => {
     let isMounted = true;
 
     const loadAdminData = async () => {
-      const [dashboardResult, usersResult, statisticsResult, lessonsResult] = await fetchAdminSnapshot();
+      const [dashboardResult, usersResult, statisticsResult, lessonsResult, ratingsResult] = await fetchAdminSnapshot();
       if (!isMounted) return;
-      applyAdminSnapshot(dashboardResult, usersResult, statisticsResult, lessonsResult);
+      applyAdminSnapshot(dashboardResult, usersResult, statisticsResult, lessonsResult, ratingsResult);
     };
 
     loadAdminData();
@@ -81,6 +90,27 @@ export default function AdminPage() {
       return fullName.includes(query) || email.includes(query) || phone.includes(query);
     });
   }, [searchQuery, users]);
+
+  const filteredRatings = useMemo(() => {
+    const query = ratingSearchQuery.trim().toLowerCase();
+    if (!query) return ratings;
+    return ratings.filter((rating) => {
+      const searchableText = [
+        rating?.fromUserName,
+        rating?.toUserName,
+        rating?.studentName,
+        rating?.tutorName,
+        rating?.comment,
+        rating?.courseLabel,
+        rating?.courseNumber,
+        rating?.lessonId,
+        rating?.id
+      ]
+        .map((value) => String(value || "").toLowerCase())
+        .join(" ");
+      return searchableText.includes(query);
+    });
+  }, [ratingSearchQuery, ratings]);
 
   const fullNameOf = (targetUser) => `${targetUser.firstName || ""} ${targetUser.lastName || ""}`.trim();
 
@@ -126,8 +156,57 @@ export default function AdminPage() {
     setEditingUser(null);
   };
 
+  const openRatingEditor = (rating) => {
+    setEditingRating({
+      id: rating.id,
+      lessonId: rating.lessonId,
+      rating: String(rating.rating ?? ""),
+      comment: rating.comment || ""
+    });
+  };
+
+  const closeRatingEditor = () => {
+    setEditingRating(null);
+  };
+
+  useEffect(() => {
+    if (!isAnyDialogOpen || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isAnyDialogOpen]);
+
+  useEffect(() => {
+    if (!editingUser) {
+      return undefined;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      if (editDialogRef.current) {
+        editDialogRef.current.scrollTop = 0;
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [editingUser?.id]);
+
   const updateEditingField = (field, value) => {
     setEditingUser((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const updateEditingRatingField = (field, value) => {
+    setEditingRating((prev) => ({
       ...prev,
       [field]: value
     }));
@@ -137,6 +216,42 @@ export default function AdminPage() {
     if (value == null) return null;
     const trimmed = String(value).trim();
     return trimmed ? trimmed : null;
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return isHe ? "לא זמין" : "N/A";
+    return new Date(value).toLocaleString(isHe ? "he-IL" : "en-US");
+  };
+
+  const getLessonStatusMeta = (lesson) => {
+    const status = String(lesson?.status || "").toLowerCase();
+    const lessonEnded = lesson?.endTime ? new Date(lesson.endTime).getTime() <= Date.now() : false;
+
+    if (status === "completed") {
+      return {
+        label: isHe ? "הושלם" : "Completed",
+        style: styles.lessonStatusCompleted
+      };
+    }
+
+    if (status === "cancelled") {
+      return {
+        label: isHe ? "בוטל" : "Cancelled",
+        style: styles.lessonStatusCancelled
+      };
+    }
+
+    if (status === "scheduled" && lessonEnded) {
+      return {
+        label: isHe ? "עבר זמנו" : "Past Due",
+        style: styles.lessonStatusPastDue
+      };
+    }
+
+    return {
+      label: isHe ? "מתוזמן" : "Scheduled",
+      style: styles.lessonStatusScheduled
+    };
   };
 
   const handleAdjustTokens = async (targetUser) => {
@@ -253,6 +368,40 @@ export default function AdminPage() {
     }
   };
 
+  const handleSaveRating = async () => {
+    if (!editingRating) return;
+
+    const numericRating = Number(editingRating.rating);
+    const cleanComment = String(editingRating.comment || "").trim();
+
+    if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
+      addNotification(
+        isHe ? "יש להזין דירוג בין 1 ל-5." : "Please enter a rating between 1 and 5.",
+        "error"
+      );
+      return;
+    }
+
+    if (!isSafeFreeText(cleanComment, 1000)) {
+      addNotification(
+        isHe ? "טקסט הדירוג כולל קלט לא תקין." : "Rating comment contains invalid input.",
+        "error"
+      );
+      return;
+    }
+
+    const roundedRating = Math.round(numericRating * 100) / 100;
+    const result = await updateAdminRating(editingRating.id, {
+      rating: roundedRating,
+      comment: nullIfBlank(cleanComment)
+    });
+
+    if (result.success) {
+      closeRatingEditor();
+      await refreshAdminData();
+    }
+  };
+
   const handleDeleteUser = async (targetUser) => {
     if (targetUser.id === user.id) {
       addNotification(isHe ? "לא ניתן למחוק את המשתמש שמחובר כעת." : "You cannot delete the currently signed-in user.", "error");
@@ -302,6 +451,9 @@ export default function AdminPage() {
           </button>
           <button onClick={() => setActiveTab("lessons")} style={{ ...styles.tab, ...(activeTab === "lessons" ? styles.activeTab : {}) }}>
             {isHe ? "ניהול שיעורים" : "Lessons Management"}
+          </button>
+          <button onClick={() => setActiveTab("ratings")} style={{ ...styles.tab, ...(activeTab === "ratings" ? styles.activeTab : {}) }}>
+            {isHe ? "ניהול דירוגים" : "Ratings Management"}
           </button>
         </div>
 
@@ -490,29 +642,202 @@ export default function AdminPage() {
                   <th style={styles.th}>{isHe ? "מורה" : "Tutor"}</th>
                   <th style={styles.th}>{isHe ? "קורס" : "Course"}</th>
                   <th style={styles.th}>{isHe ? "זמן" : "Time"}</th>
-                  <th style={styles.th}>{isHe ? "פעולות" : "Actions"}</th>
+                  <th style={styles.th}>{isHe ? "סטטוס" : "Status"}</th>
                 </tr>
               </thead>
               <tbody>
-                {lessons.map((l) => (
-                  <tr key={l.id}>
-                    <td style={styles.td}>{l.studentName}</td>
-                    <td style={styles.td}>{l.tutorName}</td>
-                    <td style={styles.td}>{getCourseDisplayNameFromSource(l, language)}</td>
-                    <td style={styles.td}>{new Date(l.startTime).toLocaleString(isHe ? "he-IL" : "en-US")}</td>
-                    <td style={styles.td}><button style={styles.cancelBtn} onClick={() => cancelLesson(l.id)}>{isHe ? "ביטול" : "Cancel"}</button></td>
-                  </tr>
-                ))}
+                {lessons.map((l) => {
+                  const statusMeta = getLessonStatusMeta(l);
+                  return (
+                    <tr key={l.id}>
+                      <td style={styles.td}>{l.studentName}</td>
+                      <td style={styles.td}>{l.tutorName}</td>
+                      <td style={styles.td}>{getCourseDisplayNameFromSource(l, language)}</td>
+                      <td style={styles.td}>
+                        <div style={styles.lessonTimeCell}>
+                          <span>{new Date(l.startTime).toLocaleString(isHe ? "he-IL" : "en-US")}</span>
+                          {l.endTime && (
+                            <span style={styles.lessonTimeHint}>
+                              {isHe ? "סיום" : "Ends"}: {new Date(l.endTime).toLocaleString(isHe ? "he-IL" : "en-US")}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={statusMeta.style}>{statusMeta.label}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               </table>
             </SyncedTableShell>
           </Card>
         )}
+
+        {activeTab === "ratings" && (
+          <Card style={styles.fullWidthCard} hoverable={false}>
+            <div style={styles.usersToolbar}>
+              <div style={styles.searchWrap}>
+                <Input
+                  label={isHe ? "חיפוש דירוגים" : "Search ratings"}
+                  placeholder={isHe ? "חיפוש לפי מדרג/ת, מקבל/ת, קורס או טקסט" : "Search by rater, ratee, course or comment"}
+                  value={ratingSearchQuery}
+                  onChange={setRatingSearchQuery}
+                />
+              </div>
+              <div style={styles.usersCountPill}>
+                {isHe ? `סה״כ דירוגים: ${filteredRatings.length}` : `Total ratings: ${filteredRatings.length}`}
+              </div>
+            </div>
+
+            <SyncedTableShell>
+              <table style={{ ...styles.table, minWidth: 1500 }}>
+                <colgroup>
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "20%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "6%" }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>{isHe ? "שיעור" : "Lesson"}</th>
+                    <th style={styles.th}>{isHe ? "מדרג/ת" : "Rated by"}</th>
+                    <th style={styles.th}>{isHe ? "מקבל/ת הדירוג" : "Rated user"}</th>
+                    <th style={styles.th}>{isHe ? "קורס" : "Course"}</th>
+                    <th style={styles.th}>{isHe ? "ציון" : "Score"}</th>
+                    <th style={styles.th}>{isHe ? "תגובה" : "Comment"}</th>
+                    <th style={styles.th}>{isHe ? "נוצר" : "Created"}</th>
+                    <th style={styles.th}>{isHe ? "פעולות" : "Actions"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRatings.map((rating) => {
+                    const isEditing = editingRating?.id === rating.id;
+                    return (
+                      <React.Fragment key={rating.id}>
+                        <tr>
+                          <td style={styles.td}>
+                            <div style={styles.nameCell}>
+                              <span>#{rating.lessonId}</span>
+                              <span style={styles.userIdHint}>
+                                {formatDateTime(rating.lessonStartTime)}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={styles.td}>
+                            <div style={styles.nameCell}>
+                              <span>{rating.fromUserName || "-"}</span>
+                              <span style={styles.userIdHint}>#{rating.fromUserId}</span>
+                            </div>
+                          </td>
+                          <td style={styles.td}>
+                            <div style={styles.nameCell}>
+                              <span>{rating.toUserName || "-"}</span>
+                              <span style={styles.userIdHint}>#{rating.toUserId}</span>
+                            </div>
+                          </td>
+                          <td style={styles.td}>
+                            {getCourseDisplayNameFromSource(rating, language) || (isHe ? "לא זמין" : "N/A")}
+                          </td>
+                          <td style={styles.td}>
+                            <span style={styles.ratingBadge}>{Number(rating.rating ?? 0).toFixed(2)} ★</span>
+                          </td>
+                          <td style={styles.td}>
+                            <div style={styles.ratingCommentPreview}>
+                              {rating.comment || (isHe ? "ללא תגובה" : "No comment")}
+                            </div>
+                          </td>
+                          <td style={styles.td}>{formatDateTime(rating.createdAt)}</td>
+                          <td style={styles.td}>
+                            <button
+                              style={isEditing ? styles.cancelOutlineBtn : styles.editBtn}
+                              onClick={() => (isEditing ? closeRatingEditor() : openRatingEditor(rating))}
+                            >
+                              {isEditing ? (isHe ? "סגירה" : "Close") : (isHe ? "עריכה" : "Edit")}
+                            </button>
+                          </td>
+                        </tr>
+                        {isEditing && (
+                          <tr>
+                            <td style={styles.ratingEditorCell} colSpan={8}>
+                              <div style={styles.ratingEditorCard}>
+                                <div style={styles.ratingMetaGrid}>
+                                  <div style={styles.ratingMetaItem}>
+                                    <span style={styles.ratingMetaLabel}>{isHe ? "מדרג/ת" : "Rated by"}</span>
+                                    <span style={styles.ratingMetaValue}>{rating.fromUserName || "-"}</span>
+                                  </div>
+                                  <div style={styles.ratingMetaItem}>
+                                    <span style={styles.ratingMetaLabel}>{isHe ? "מקבל/ת" : "Rated user"}</span>
+                                    <span style={styles.ratingMetaValue}>{rating.toUserName || "-"}</span>
+                                  </div>
+                                  <div style={styles.ratingMetaItem}>
+                                    <span style={styles.ratingMetaLabel}>{isHe ? "קורס" : "Course"}</span>
+                                    <span style={styles.ratingMetaValue}>{getCourseDisplayNameFromSource(rating, language) || (isHe ? "לא זמין" : "N/A")}</span>
+                                  </div>
+                                  <div style={styles.ratingMetaItem}>
+                                    <span style={styles.ratingMetaLabel}>{isHe ? "נוצר" : "Created"}</span>
+                                    <span style={styles.ratingMetaValue}>{formatDateTime(rating.createdAt)}</span>
+                                  </div>
+                                </div>
+
+                                <div style={styles.modalFormGrid}>
+                                  <Input
+                                    label={isHe ? "ציון" : "Score"}
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="1"
+                                    max="5"
+                                    step="0.1"
+                                    value={editingRating.rating}
+                                    onChange={(value) => updateEditingRatingField("rating", value)}
+                                  />
+                                </div>
+
+                                <label style={styles.textareaLabel}>
+                                  <span>{isHe ? "טקסט הדירוג" : "Rating comment"}</span>
+                                  <textarea
+                                    value={editingRating.comment}
+                                    onChange={(e) => updateEditingRatingField("comment", e.target.value)}
+                                    style={styles.textarea}
+                                  />
+                                </label>
+
+                                <div style={styles.modalActions}>
+                                  <button style={styles.cancelOutlineBtn} onClick={closeRatingEditor}>
+                                    {isHe ? "ביטול" : "Cancel"}
+                                  </button>
+                                  <button style={styles.saveBtn} onClick={handleSaveRating}>
+                                    {isHe ? "שמירת דירוג" : "Save Rating"}
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {filteredRatings.length === 0 && (
+                <div style={styles.emptyUsersState}>
+                  {isHe ? "אין דירוגים להצגה." : "No ratings to display."}
+                </div>
+              )}
+            </SyncedTableShell>
+          </Card>
+        )}
       </main>
 
-      {editingUser && (
+      {editingUser && portalTarget && createPortal(
         <div style={styles.modalBackdrop} onClick={closeEditDialog}>
-          <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+          <div ref={editDialogRef} style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, marginBottom: 12 }}>
               {isHe ? "עריכת משתמש" : "Edit User"} #{editingUser.id}
             </h3>
@@ -522,6 +847,7 @@ export default function AdminPage() {
                 label={isHe ? "אימייל" : "Email"}
                 value={editingUser.email}
                 onChange={(value) => updateEditingField("email", value)}
+                autoFocus
               />
               <Input
                 label={isHe ? "שם פרטי" : "First name"}
@@ -600,7 +926,8 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        portalTarget
       )}
     </div>
   );
@@ -997,7 +1324,100 @@ const styles = {
   deleteBtn: { padding: "6px 10px", borderRadius: 8, border: "1px solid #7f1d1d", background: "#7f1d1d", color: "white", whiteSpace: 'nowrap' },
   tokenInput: { width: 110, borderRadius: 8, border: '1px solid #cbd5e1', padding: '6px 8px' },
   adjustBtn: { padding: '6px 10px', borderRadius: 8, border: '1px solid #0ea5e9', background: '#0ea5e9', color: 'white', whiteSpace: 'nowrap' },
-  cancelBtn: { padding: "6px 10px", borderRadius: 8, border: "1px solid #f59e0b", background: "#f59e0b", color: "white" },
+  lessonTimeCell: { display: 'grid', gap: 4 },
+  lessonTimeHint: { fontSize: 12, color: '#64748b' },
+  ratingBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#fef3c7',
+    color: '#92400e',
+    fontSize: 12,
+    fontWeight: 800
+  },
+  ratingCommentPreview: {
+    whiteSpace: 'pre-wrap',
+    lineHeight: 1.5,
+    color: '#334155'
+  },
+  ratingEditorCell: {
+    padding: 14,
+    background: '#f8fafc',
+    borderBottom: '1px solid #e2e8f0'
+  },
+  ratingEditorCard: {
+    display: 'grid',
+    gap: 14,
+    border: '1px solid #dbeafe',
+    borderRadius: 14,
+    background: 'white',
+    padding: 16,
+    boxShadow: '0 12px 24px rgba(15, 23, 42, 0.06)'
+  },
+  ratingMetaGrid: {
+    display: 'grid',
+    gap: 10,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
+  },
+  ratingMetaItem: {
+    display: 'grid',
+    gap: 4,
+    padding: '10px 12px',
+    borderRadius: 12,
+    border: '1px solid #e2e8f0',
+    background: '#f8fafc'
+  },
+  ratingMetaLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: 700
+  },
+  ratingMetaValue: {
+    fontSize: 14,
+    color: '#0f172a',
+    fontWeight: 600
+  },
+  lessonStatusScheduled: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#ecfeff',
+    color: '#0e7490',
+    fontSize: 12,
+    fontWeight: 700
+  },
+  lessonStatusCompleted: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#dcfce7',
+    color: '#166534',
+    fontSize: 12,
+    fontWeight: 700
+  },
+  lessonStatusCancelled: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#fee2e2',
+    color: '#b91c1c',
+    fontSize: 12,
+    fontWeight: 700
+  },
+  lessonStatusPastDue: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 10px',
+    borderRadius: 999,
+    background: '#fef3c7',
+    color: '#92400e',
+    fontSize: 12,
+    fontWeight: 700
+  },
   emptyUsersState: {
     padding: '20px',
     textAlign: 'center',
@@ -1012,7 +1432,9 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 200
+    zIndex: 200,
+    padding: 16,
+    overflowY: 'auto'
   },
   modalCard: {
     width: 'min(860px, calc(100vw - 24px))',

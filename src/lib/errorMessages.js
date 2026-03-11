@@ -86,6 +86,18 @@ const CODE_MESSAGES = {
   LESSON_TOO_SOON: {
     he: "אפשר לקבוע שיעור רק אם תחילתו בעוד יותר מ-6 שעות.",
     en: "Lessons must be scheduled more than 6 hours in advance."
+  },
+  LESSON_ALREADY_ENDED: {
+    he: "אי אפשר לבטל שיעור שכבר הסתיים.",
+    en: "A lesson that already ended cannot be cancelled."
+  },
+  INVALID_RATING: {
+    he: "הדירוג חייב להיות בין 1 ל-5.",
+    en: "Rating must be between 1 and 5."
+  },
+  ALREADY_RATED: {
+    he: "כבר דירגת את השיעור הזה.",
+    en: "You already rated this lesson."
   }
 };
 

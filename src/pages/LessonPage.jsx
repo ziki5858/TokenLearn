@@ -89,19 +89,26 @@ export default function LessonPage() {
     }
   };
 
+  const loadLessonDetails = async (applyState = true) => {
+    if (!lessonId) {
+      return null;
+    }
+
+    const result = await getLessonDetails(lessonId);
+    if (applyState && result.success && result.data) {
+      setLesson((prev) => ({ ...prev, ...result.data }));
+    }
+    return result;
+  };
+
   useEffect(() => {
     let isMounted = true;
 
     const loadLesson = async () => {
-      if (!lessonId) {
-        return;
-      }
-
-      const result = await getLessonDetails(lessonId);
+      const result = await loadLessonDetails(false);
       if (!isMounted || !result.success || !result.data) {
         return;
       }
-
       setLesson((prev) => ({ ...prev, ...result.data }));
     };
 
@@ -197,6 +204,15 @@ export default function LessonPage() {
         ratedAt: new Date().toISOString(),
         myRating: { rating, comment }
       }));
+      setShowRatingForm(false);
+      setComment("");
+      setRating(5);
+      return;
+    }
+
+    const errorCode = result.error?.code || result.error?.payload?.error?.code;
+    if (errorCode === "ALREADY_RATED") {
+      await loadLessonDetails();
       setShowRatingForm(false);
     }
   };
@@ -397,7 +413,7 @@ export default function LessonPage() {
             </div>
           )}
 
-          {lesson.status === "completed" && isStudent && !lesson.ratedAt && !showRatingForm && (
+          {lesson.status === "completed" && isStudent && !lesson.myRating && !showRatingForm && (
             <div style={styles.actions}>
               <Button onClick={() => setShowRatingForm(true)}>
                 ⭐ {isHe ? "דירוג השיעור" : "Rate This Lesson"}
