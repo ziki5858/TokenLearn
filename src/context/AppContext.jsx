@@ -552,6 +552,17 @@ export function AppProvider({ children }) {
     });
   };
 
+  const updateLessonRating = async (lessonId, rating, comment) => {
+    return apiCall(async () => {
+      const payload = await apiRequest(`/api/lessons/${lessonId}/rate`, {
+        method: 'PUT',
+        body: JSON.stringify({ rating, comment })
+      });
+      addNotification(getUiMessage('ratingUpdated'), 'success');
+      return payload;
+    });
+  };
+
   const getUserRatings = async (userId) => {
     return apiCall(async () => {
       return apiRequest(`/api/users/${userId}/ratings`);
@@ -849,6 +860,7 @@ export function AppProvider({ children }) {
     getLessonDetails,
     completeLesson,
     rateLesson,
+    updateLessonRating,
     getUserRatings,
     cancelLesson,
     getLessonRequestsAsStudent,

@@ -17,6 +17,7 @@ export default function LessonPage() {
   const {
     completeLesson,
     rateLesson,
+    updateLessonRating,
     cancelLesson,
     getLessonDetails,
     getNotifications,
@@ -54,6 +55,7 @@ export default function LessonPage() {
     tokenCost: 1,
     completedAt: null,
     ratedAt: null,
+    ratingEditableUntil: null,
     myRating: null
   });
 
@@ -136,10 +138,24 @@ export default function LessonPage() {
   const lessonCourseLabel = getCourseDisplayNameFromSource(lesson, language);
   const lessonStartDate = lesson.startTime ? new Date(lesson.startTime) : new Date(lesson.dateTime);
   const lessonEndDate = lesson.endTime ? new Date(lesson.endTime) : null;
+  const ratingEditableUntilDate = lesson.ratingEditableUntil ? new Date(lesson.ratingEditableUntil) : null;
   const hasValidStartTime = lessonStartDate instanceof Date && !Number.isNaN(lessonStartDate.getTime());
   const hasValidEndTime = lessonEndDate instanceof Date && !Number.isNaN(lessonEndDate.getTime());
+  const hasValidRatingEditWindow = ratingEditableUntilDate instanceof Date && !Number.isNaN(ratingEditableUntilDate.getTime());
   const canCompleteScheduledLesson = lesson.status === "scheduled" && hasValidEndTime && lessonEndDate <= now;
   const canCancelScheduledLesson = lesson.status === "scheduled" && hasValidStartTime && lessonStartDate > now;
+  const canEditExistingRating = Boolean(lesson.myRating) && hasValidRatingEditWindow && ratingEditableUntilDate >= now;
+
+  const openRatingForm = () => {
+    if (lesson.myRating) {
+      setRating(Number(lesson.myRating.rating ?? 5));
+      setComment(lesson.myRating.comment || "");
+    } else {
+      setRating(5);
+      setComment("");
+    }
+    setShowRatingForm(true);
+  };
 
   const formatDateTime = (dateStr) => {
     const date = new Date(dateStr);
@@ -195,13 +211,15 @@ export default function LessonPage() {
     }
 
     setIsSubmitting(true);
-    const result = await rateLesson(lesson.id, rating, comment);
+    const submitRating = lesson.myRating ? updateLessonRating : rateLesson;
+    const result = await submitRating(lesson.id, rating, comment);
     setIsSubmitting(false);
 
     if (result.success) {
       setLesson((prev) => ({
         ...prev,
-        ratedAt: new Date().toISOString(),
+        ratedAt: result.data?.ratedAt || prev.ratedAt || new Date().toISOString(),
+        ratingEditableUntil: result.data?.ratingEditableUntil || prev.ratingEditableUntil,
         myRating: { rating, comment }
       }));
       setShowRatingForm(false);
@@ -211,7 +229,7 @@ export default function LessonPage() {
     }
 
     const errorCode = result.error?.code || result.error?.payload?.error?.code;
-    if (errorCode === "ALREADY_RATED") {
+    if (errorCode === "ALREADY_RATED" || errorCode === "RATING_EDIT_WINDOW_EXPIRED") {
       await loadLessonDetails();
       setShowRatingForm(false);
     }
@@ -415,15 +433,30 @@ export default function LessonPage() {
 
           {lesson.status === "completed" && isStudent && !lesson.myRating && !showRatingForm && (
             <div style={styles.actions}>
-              <Button onClick={() => setShowRatingForm(true)}>
+              <Button onClick={openRatingForm}>
                 ⭐ {isHe ? "דירוג השיעור" : "Rate This Lesson"}
+              </Button>
+            </div>
+          )}
+
+          {lesson.status === "completed" && isStudent && canEditExistingRating && !showRatingForm && (
+            <div style={styles.actions}>
+              <Button onClick={openRatingForm}>
+                ✏️ {isHe ? "ערוך/י דירוג" : "Edit Rating"}
               </Button>
             </div>
           )}
 
           {showRatingForm && (
             <div style={styles.ratingSection}>
-              <h3 style={styles.sectionTitle}>⭐ {isHe ? "דרג/י את השיעור" : "Rate Your Lesson"}</h3>
+              <h3 style={styles.sectionTitle}>⭐ {lesson.myRating ? (isHe ? "ערוך/י את הדירוג" : "Edit Your Rating") : (isHe ? "דרג/י את השיעור" : "Rate Your Lesson")}</h3>
+
+              {lesson.myRating && hasValidRatingEditWindow && (
+                <div style={styles.ratingWindowHint}>
+                  {isHe ? "אפשר לערוך את הדירוג עד " : "You can edit this rating until "}
+                  <strong>{formatDateTime(lesson.ratingEditableUntil)}</strong>
+                </div>
+              )}
 
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
@@ -465,8 +498,12 @@ export default function LessonPage() {
               </div>
 
               <div style={{ display: "flex", gap: 12 }}>
-                <Button onClick={handleSubmitRating} disabled={isSubmitting}>
-                  {isSubmitting ? (isHe ? "שולח/ת..." : "Submitting...") : (isHe ? "שליחת דירוג" : "Submit Rating")}
+                <Button onClick={handleSubmitRating} disabled={isSubmitting || (lesson.myRating && !canEditExistingRating)}>
+                  {isSubmitting
+                    ? (isHe ? "שולח/ת..." : "Submitting...")
+                    : lesson.myRating
+                      ? (isHe ? "שמירת שינויים" : "Save Changes")
+                      : (isHe ? "שליחת דירוג" : "Submit Rating")}
                 </Button>
                 <button
                   onClick={() => setShowRatingForm(false)}
@@ -491,6 +528,13 @@ export default function LessonPage() {
               {lesson.myRating.comment && (
                 <div style={{ color: "#475569", fontStyle: "italic" }}>
                   "{lesson.myRating.comment}"
+                </div>
+              )}
+              {hasValidRatingEditWindow && (
+                <div style={{ ...styles.smallMeta, marginTop: 10 }}>
+                  {canEditExistingRating
+                    ? (isHe ? `ניתן לערוך עד ${formatDateTime(lesson.ratingEditableUntil)}` : `Editable until ${formatDateTime(lesson.ratingEditableUntil)}`)
+                    : (isHe ? "חלון העריכה של הדירוג הסתיים." : "The rating edit window has ended.")}
                 </div>
               )}
             </div>
@@ -631,6 +675,16 @@ const styles = {
     background: "#fefce8",
     border: "1px solid #fde68a",
     borderRadius: 14
+  },
+  ratingWindowHint: {
+    marginBottom: 16,
+    padding: "10px 12px",
+    borderRadius: 10,
+    background: "#fff7ed",
+    border: "1px solid #fdba74",
+    color: "#9a3412",
+    fontSize: 13,
+    lineHeight: 1.5
   },
   textarea: {
     width: "100%",

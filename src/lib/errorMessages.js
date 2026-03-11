@@ -98,6 +98,10 @@ const CODE_MESSAGES = {
   ALREADY_RATED: {
     he: "כבר דירגת את השיעור הזה.",
     en: "You already rated this lesson."
+  },
+  RATING_EDIT_WINDOW_EXPIRED: {
+    he: "אפשר לערוך דירוג רק עד שעה מהשליחה המקורית.",
+    en: "A rating can only be edited within one hour of the original submission."
   }
 };
 
