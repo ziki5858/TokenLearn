@@ -120,7 +120,12 @@ export default function LessonRequestsPage() {
     if (normalizedStatus === "pending" && timers[request.id]?.expired) {
       return "expired";
     }
-    if (normalizedStatus === "approved" || normalizedStatus === "rejected" || normalizedStatus === "cancelled") {
+    if (
+      normalizedStatus === "approved"
+      || normalizedStatus === "rejected"
+      || normalizedStatus === "cancelled"
+      || normalizedStatus === "expired"
+    ) {
       return normalizedStatus;
     }
     return "pending";
@@ -138,6 +143,20 @@ export default function LessonRequestsPage() {
 
   const teacherPendingCount = groupedTeacherRequests.pending.length;
 
+  const extractErrorCode = (result) => (
+    result?.error?.code
+    || result?.error?.payload?.error?.code
+    || result?.error?.payload?.code
+    || null
+  );
+
+  const shouldRefreshAfterFailedAction = (result) => {
+    const errorCode = extractErrorCode(result);
+    return errorCode === "REQUEST_EXPIRED"
+      || errorCode === "INVALID_STATE"
+      || errorCode === "NOT_FOUND";
+  };
+
   const handleApprove = async (requestId) => {
     const timer = timers[requestId];
     if (timer?.expired) {
@@ -147,6 +166,10 @@ export default function LessonRequestsPage() {
 
     const result = await approveLessonRequest(requestId);
     if (result.success) {
+      await refreshRequests();
+      return;
+    }
+    if (shouldRefreshAfterFailedAction(result)) {
       await refreshRequests();
     }
   };
@@ -166,6 +189,8 @@ export default function LessonRequestsPage() {
     const result = await rejectLessonRequest(selectedRequestForRejection.id, rejectionMessage);
     if (result.success) {
       await refreshRequests();
+    } else if (shouldRefreshAfterFailedAction(result)) {
+      await refreshRequests();
     }
 
     setRejectModalOpen(false);
@@ -181,6 +206,8 @@ export default function LessonRequestsPage() {
   const handleCancel = async () => {
     const result = await cancelLessonRequest(selectedRequestForCancel.id);
     if (result.success) {
+      await refreshRequests();
+    } else if (shouldRefreshAfterFailedAction(result)) {
       await refreshRequests();
     }
     setCancelModalOpen(false);
