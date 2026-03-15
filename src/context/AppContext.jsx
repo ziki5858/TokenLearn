@@ -10,6 +10,12 @@ import { getCurrentUiLanguage, getSessionExpiredMessage, translateErrorMessage }
 import { renderNotificationPreview } from '../lib/notificationInbox';
 import { getUiMessage } from '../lib/uiMessages';
 
+/**
+ * App-wide orchestration layer.
+ *
+ * This provider centralizes session bootstrap, API calls, optimistic state
+ * updates, notifications, and the action methods used by pages/components.
+ */
 const DEFAULT_USER = {
   id: null,
   firstName: '',
@@ -61,7 +67,7 @@ const firstArray = (payload, keys = []) => {
   return [];
 };
 
-const BAD_TEXT_ONLY_PATTERN = /^[\?\uFFFD]+$/;
+const BAD_TEXT_ONLY_PATTERN = /^[?\uFFFD]+$/;
 
 const isCorruptedDisplayText = (value) => {
   if (typeof value !== 'string') {
@@ -84,6 +90,8 @@ const resolveProfileTextField = (prevValue, nextValue) => {
   return nextValue;
 };
 
+// Merge profile payloads defensively because some endpoints return partial user
+// data and we do not want a later response to wipe an already-hydrated field.
 const mergeUserState = (setUser, userPatch = {}) => {
   setUser((prev) => ({
     ...prev,
@@ -718,6 +726,8 @@ export function AppProvider({ children }) {
   useEffect(() => {
     let isMounted = true;
 
+    // Restore the persisted session once on startup so route guards can decide
+    // whether to keep the user in the app or send them back to /login.
     const initializeAuthState = async () => {
       const token = getStoredAuthToken();
 
@@ -769,6 +779,8 @@ export function AppProvider({ children }) {
 
     let cancelled = false;
 
+    // The backend inbox is the source of truth. We poll it and surface only
+    // newly seen unread items as short toast previews.
     const pollUnreadNotifications = async () => {
       const [countResult, unreadResult] = await Promise.all([
         getUnreadNotificationCount(),

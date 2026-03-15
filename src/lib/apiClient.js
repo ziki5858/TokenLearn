@@ -2,6 +2,12 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:808
 
 const AUTH_TOKEN_KEY = 'authToken';
 
+/**
+ * Thin fetch wrapper used across the entire client.
+ *
+ * It injects the stored JWT, understands the backend response envelope, and
+ * throws consistent ApiError instances for pages and provider actions to handle.
+ */
 function createApiError(message, { status, code, payload } = {}) {
   const error = new Error(message || 'Request failed');
   error.name = 'ApiError';

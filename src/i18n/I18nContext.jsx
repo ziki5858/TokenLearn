@@ -2,6 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { supportedLanguages, translations } from './translations';
 import { I18nContext } from './context';
 
+/**
+ * Translation and direction provider.
+ *
+ * Besides exposing t(), it keeps the document language and text direction in
+ * sync so the Hebrew experience stays RTL and the English experience stays LTR.
+ */
 function getNestedValue(obj, path) {
   return path.split('.').reduce((acc, part) => (acc ? acc[part] : undefined), obj);
 }

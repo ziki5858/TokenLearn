@@ -15,6 +15,12 @@ function TokenHistoryIcon() {
   );
 }
 
+/**
+ * Shared shell for authenticated pages.
+ *
+ * It owns the primary navigation, unread message badge, language switcher,
+ * logout action, and the token summary visible across the app.
+ */
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();

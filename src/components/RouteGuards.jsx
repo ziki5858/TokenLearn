@@ -6,6 +6,9 @@ function GuardFallback() {
   return <LoadingSpinner fullScreen text="Loading..." />;
 }
 
+/**
+ * Keeps authenticated users away from guest-only screens such as login/register.
+ */
 export function PublicOnlyRoute() {
   const location = useLocation();
   const { isAuthReady, isAuthenticated } = useApp();
@@ -22,6 +25,9 @@ export function PublicOnlyRoute() {
   return <Outlet />;
 }
 
+/**
+ * Protects the main application area until auth bootstrap has finished.
+ */
 export function ProtectedRoute() {
   const location = useLocation();
   const { isAuthReady, isAuthenticated } = useApp();
@@ -37,6 +43,9 @@ export function ProtectedRoute() {
   return <Outlet />;
 }
 
+/**
+ * Adds a second authorization gate for admin-only pages after authentication.
+ */
 export function AdminRoute() {
   const location = useLocation();
   const { isAuthReady, isAuthenticated, user } = useApp();

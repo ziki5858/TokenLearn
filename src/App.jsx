@@ -19,6 +19,13 @@ import AppLayout from './layouts/AppLayout';
 import { I18nProvider } from './i18n/I18nContext';
 import { AdminRoute, ProtectedRoute, PublicOnlyRoute } from './components/RouteGuards';
 
+/**
+ * Root application tree.
+ *
+ * The app is split into public auth routes and authenticated application routes.
+ * Shared providers live here so every page gets access to translations,
+ * notifications, auth state, and the global API/action surface.
+ */
 function App() {
   return (
     <I18nProvider>

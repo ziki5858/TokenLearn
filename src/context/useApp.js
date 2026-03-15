@@ -1,6 +1,9 @@
 import { useContext } from 'react';
 import { AppContext } from './AppContextBase';
 
+/**
+ * Typed access point to the global app provider.
+ */
 export function useApp() {
   const context = useContext(AppContext);
   if (!context) {

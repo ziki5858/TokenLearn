@@ -1,6 +1,12 @@
 const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 let scriptPromise;
 
+/**
+ * Google Identity Services integration.
+ *
+ * The client asks Google for an ID token, then forwards that token to the
+ * backend, which exchanges it for the application's own JWT.
+ */
 function buildPromptError(notification) {
   const notDisplayedReason = notification.getNotDisplayedReason?.();
   const skippedReason = notification.getSkippedReason?.();
