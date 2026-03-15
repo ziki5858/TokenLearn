@@ -7,9 +7,14 @@ export const isValidName = (value) => NAME_REGEX.test(String(value || "").trim()
 
 export const isValidPhone = (value) => PHONE_REGEX.test(String(value || "").trim());
 
+export const normalizePhotoUrl = (value) => {
+  const text = String(value || "").trim();
+  return PHOTO_URL_REGEX.test(text) ? text : "";
+};
+
 export const isValidPhotoUrl = (value) => {
   const text = String(value || "").trim();
-  return !text || PHOTO_URL_REGEX.test(text);
+  return !text || normalizePhotoUrl(text) === text;
 };
 
 export const isSafeFreeText = (value, maxLength = 2000) => {

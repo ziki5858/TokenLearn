@@ -3,6 +3,7 @@ import Button from "./Button";
 import { useI18n } from "../i18n/useI18n";
 import { getCourseDisplayName, normalizeCourse } from "../lib/courseUtils";
 import { localizeDayName, sortAvailabilitySlotsByDayAndTime } from "../lib/dayUtils";
+import { normalizePhotoUrl } from "../lib/validation";
 
 export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
   const { language } = useI18n();
@@ -28,10 +29,11 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
 
   const aboutMe = tutor?.aboutMeAsTeacher || tutor?.about || "";
   const [photoFailed, setPhotoFailed] = useState(false);
+  const safePhotoUrl = normalizePhotoUrl(tutor?.photoUrl);
 
   useEffect(() => {
     setPhotoFailed(false);
-  }, [tutor?.photoUrl]);
+  }, [safePhotoUrl]);
 
   return (
     <div style={styles.overlay} onClick={onClose}>
@@ -45,9 +47,9 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
           {/* Profile Header with Photo */}
           <div style={styles.profileHeader}>
             <div style={styles.photoContainer}>
-              {tutor.photoUrl && !photoFailed ? (
+              {safePhotoUrl && !photoFailed ? (
                 <img 
-                  src={tutor.photoUrl} 
+                  src={safePhotoUrl} 
                   alt={tutor.name} 
                   style={styles.photo}
                   referrerPolicy="no-referrer"

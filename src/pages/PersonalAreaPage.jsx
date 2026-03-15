@@ -7,7 +7,7 @@ import CourseAutocomplete from "../components/CourseAutocomplete";
 import { useI18n } from "../i18n/useI18n";
 import { dedupeCoursesById, normalizeCourse } from "../lib/courseUtils";
 import { normalizeDayToEnglish } from "../lib/dayUtils";
-import { isSafeFreeText, isValidName, isValidPhone, isValidPhotoUrl } from "../lib/validation";
+import { isSafeFreeText, isValidName, isValidPhone, isValidPhotoUrl, normalizePhotoUrl } from "../lib/validation";
 
 const EN_DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const HE_DAY_BY_EN = {
@@ -140,6 +140,8 @@ export default function PersonalAreaPage() {
   const [aboutMeAsStudent, setAboutMeAsStudent] = useState(user?.aboutMeAsStudent || "");
 
   const generalComplete = Boolean(firstName.trim() && lastName.trim() && phone.trim());
+  const previewPhotoUrl = normalizePhotoUrl(photoUrl);
+  const hasUnsupportedPhotoUrl = Boolean(String(photoUrl || "").trim()) && !previewPhotoUrl;
   const blockedSectionMessage = isHe
     ? "יש למלא קודם שם פרטי, שם משפחה וטלפון כדי לפתוח את השדות האלה."
     : "Fill first name, last name, and phone first to unlock these fields.";
@@ -168,7 +170,7 @@ export default function PersonalAreaPage() {
 
   useEffect(() => {
     setPhotoLoadFailed(false);
-  }, [photoUrl]);
+  }, [previewPhotoUrl]);
 
   function addCourseAsTeacher() {
     setHasChanges(true);
@@ -521,9 +523,9 @@ export default function PersonalAreaPage() {
               fontWeight: 700
             }}
           >
-            {photoUrl && !photoLoadFailed ? (
+            {previewPhotoUrl && !photoLoadFailed ? (
               <img
-                src={photoUrl}
+                src={previewPhotoUrl}
                 alt={isHe ? "תמונת פרופיל" : "Profile"}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 referrerPolicy="no-referrer"
@@ -550,7 +552,14 @@ export default function PersonalAreaPage() {
             </div>
           </div>
         </div>
-        {photoUrl && photoLoadFailed && (
+        {hasUnsupportedPhotoUrl && (
+          <div style={{ fontSize: 13, color: "#b91c1c", fontWeight: 700 }}>
+            {isHe
+              ? "מוצגים רק קישורי תמונה ישירים מסוג http/https."
+              : "Only direct http/https image URLs are supported."}
+          </div>
+        )}
+        {previewPhotoUrl && photoLoadFailed && (
           <div style={{ fontSize: 13, color: "#b91c1c", fontWeight: 700 }}>
             {isHe ? "לא ניתן לטעון את התמונה מהקישור שסופק." : "Could not load the image from the provided URL."}
           </div>

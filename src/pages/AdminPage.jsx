@@ -8,7 +8,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import TokenHistoryList from "../components/TokenHistoryList";
 import { useI18n } from "../i18n/useI18n";
 import { getCourseDisplayName, getCourseDisplayNameFromSource } from "../lib/courseUtils";
-import { isSafeFreeText, isValidName, isValidPhone, isValidPhotoUrl } from "../lib/validation";
+import { isSafeFreeText, isValidName, isValidPhone, isValidPhotoUrl, normalizePhotoUrl } from "../lib/validation";
 
 export default function AdminPage() {
   const { language } = useI18n();
@@ -1026,19 +1026,20 @@ const initialsFromName = (fullName) => {
 
 function UserAvatar({ photoUrl, fullName, isHe }) {
   const [failed, setFailed] = useState(false);
+  const safePhotoUrl = normalizePhotoUrl(photoUrl);
 
   useEffect(() => {
     setFailed(false);
-  }, [photoUrl]);
+  }, [safePhotoUrl]);
 
   const alt = fullName || (isHe ? "תמונת פרופיל" : "Profile photo");
-  const showImage = Boolean(photoUrl) && !failed;
+  const showImage = Boolean(safePhotoUrl) && !failed;
 
   return (
     <div style={styles.avatarFrame}>
       {showImage ? (
         <img
-          src={photoUrl}
+          src={safePhotoUrl}
           alt={alt}
           style={styles.avatarThumb}
           loading="lazy"
