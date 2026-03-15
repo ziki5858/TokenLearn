@@ -6,10 +6,11 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { useI18n } from "../i18n/useI18n";
 import { getCourseDisplayNameFromSource } from "../lib/courseUtils";
 import { isValidDate, parseFlexibleDate, resolveLessonDateFromRequest } from "../lib/dateTimeUtils";
+import { isPendingLessonRequest, normalizeLessonRequestStatus } from "../lib/lessonRequestUtils";
 import { localizeDayName } from "../lib/dayUtils";
 
-const STUDENT_SECTION_ORDER = ["pending", "approved", "rejected", "cancelled", "expired"];
-const TEACHER_SECTION_ORDER = ["pending", "approved", "rejected", "cancelled", "expired"];
+const STUDENT_SECTION_ORDER = ["pending", "approved", "completed", "rejected", "cancelled", "expired"];
+const TEACHER_SECTION_ORDER = ["pending", "approved", "completed", "rejected", "cancelled", "expired"];
 
 export default function LessonRequestsPage() {
   const { language } = useI18n();
@@ -100,7 +101,7 @@ export default function LessonRequestsPage() {
     const updateTimers = () => {
       const nextTimers = {};
       [...requestsAsStudent, ...requestsAsTeacher].forEach((request) => {
-        if (request.status === "pending") {
+        if (isPendingLessonRequest(request.status)) {
           const timer = calculateTimeRemaining(request);
           if (timer) {
             nextTimers[request.id] = timer;
@@ -116,12 +117,13 @@ export default function LessonRequestsPage() {
   }, [requestsAsStudent, requestsAsTeacher, calculateTimeRemaining]);
 
   const getRequestBucket = useCallback((request) => {
-    const normalizedStatus = String(request?.status || "").toLowerCase();
+    const normalizedStatus = normalizeLessonRequestStatus(request?.status);
     if (normalizedStatus === "pending" && timers[request.id]?.expired) {
       return "expired";
     }
     if (
       normalizedStatus === "approved"
+      || normalizedStatus === "completed"
       || normalizedStatus === "rejected"
       || normalizedStatus === "cancelled"
       || normalizedStatus === "expired"
@@ -141,6 +143,7 @@ export default function LessonRequestsPage() {
     [requestsAsTeacher, getRequestBucket]
   );
 
+  const studentPendingCount = groupedStudentRequests.pending.length;
   const teacherPendingCount = groupedTeacherRequests.pending.length;
 
   const extractErrorCode = (result) => (
@@ -293,6 +296,8 @@ export default function LessonRequestsPage() {
         return { bg: "#fef3c7", border: "#fde68a", text: "#92400e" };
       case "approved":
         return { bg: "#d1fae5", border: "#a7f3d0", text: "#065f46" };
+      case "completed":
+        return { bg: "#dcfce7", border: "#86efac", text: "#166534" };
       case "rejected":
         return { bg: "#fee2e2", border: "#fecaca", text: "#991b1b" };
       case "cancelled":
@@ -308,6 +313,7 @@ export default function LessonRequestsPage() {
     switch (bucket) {
       case "pending": return isHe ? "⏳ ממתין" : "⏳ Pending";
       case "approved": return isHe ? "✅ אושר" : "✅ Approved";
+      case "completed": return isHe ? "✔ הושלם" : "✔ Completed";
       case "rejected": return isHe ? "❌ נדחה" : "❌ Rejected";
       case "cancelled": return isHe ? "🚫 בוטל" : "🚫 Cancelled";
       case "expired": return isHe ? "⏰ פג תוקף" : "⏰ Expired";
@@ -364,7 +370,7 @@ export default function LessonRequestsPage() {
               {isHe ? "⏰ חלון האישור עבר. הבקשה נשארת בהיסטוריה אך לא ניתנת עוד לאישור." : "⏰ The approval window has passed. This request stays in history but can no longer be approved."}
             </div>
           )}
-          {request.status === "pending" && !timer && (
+          {isPendingLessonRequest(request.status) && !timer && (
             <div style={styles.warningInfo}>
               {isHe ? "⏱️ מועד שיעור לא תקין או חסר - יש לעדכן בקשה זו." : "⏱️ Lesson time is missing or invalid for this request."}
             </div>
@@ -431,7 +437,7 @@ export default function LessonRequestsPage() {
               {isHe ? "⏰ חלון האישור עבר. הבקשה נשמרת להיסטוריה בלבד." : "⏰ The approval window has passed. This request is kept for history only."}
             </div>
           )}
-          {request.status === "pending" && !timer && (
+          {isPendingLessonRequest(request.status) && !timer && (
             <div style={styles.warningInfo}>
               {isHe ? "⏱️ מועד שיעור לא תקין או חסר - יש לאשר/לדחות ידנית." : "⏱️ Lesson time is missing or invalid. Please approve/reject manually."}
             </div>
@@ -468,7 +474,7 @@ export default function LessonRequestsPage() {
           onClick={() => setActiveTab("student")}
           style={{ ...styles.tab, ...(activeTab === "student" ? styles.tabActive : {}) }}
         >
-          {isHe ? "הבקשות שלי כתלמיד/ה" : "My Requests as Student"} ({requestsAsStudent.length})
+          {isHe ? "הבקשות שלי כתלמיד/ה" : "My Requests as Student"} ({studentPendingCount})
         </button>
         <button
           onClick={() => setActiveTab("teacher")}
@@ -625,6 +631,11 @@ function buildSectionMeta(isHe, role) {
         description: isHe ? "בקשות שכבר אושרו ונקבע להן שיעור." : "Requests that were already approved and scheduled."
       },
       {
+        key: "completed",
+        title: isHe ? "שהושלמו" : "Completed",
+        description: isHe ? "בקשות שאושרו והשיעור שנקבע להן כבר התקיים." : "Requests that were approved and whose lesson already took place."
+      },
+      {
         key: "rejected",
         title: isHe ? "שנדחו" : "Rejected",
         description: isHe ? "בקשות שנדחו עם או בלי סיבת דחייה." : "Requests that were rejected."
@@ -652,6 +663,11 @@ function buildSectionMeta(isHe, role) {
       key: "approved",
       title: isHe ? "שאושרו" : "Approved",
       description: isHe ? "בקשות שאושרו והפכו לשיעורים מתוכננים." : "Requests that were approved and became scheduled lessons."
+    },
+    {
+      key: "completed",
+      title: isHe ? "שהושלמו" : "Completed",
+      description: isHe ? "בקשות שאושרו והשיעור שנקבע עבורן כבר הושלם." : "Requests that were approved and already completed."
     },
     {
       key: "rejected",

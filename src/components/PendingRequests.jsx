@@ -4,6 +4,7 @@ import { useApp } from "../context/useApp";
 import { useI18n } from "../i18n/useI18n";
 import { getCourseDisplayNameFromSource } from "../lib/courseUtils";
 import { isValidDate, parseFlexibleDate, resolveLessonDateFromRequest } from "../lib/dateTimeUtils";
+import { isPendingLessonRequest } from "../lib/lessonRequestUtils";
 import { localizeDayName } from "../lib/dayUtils";
 
 export default function PendingRequests({ requests, onApprove, onReject }) {
@@ -55,7 +56,7 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
     const updateTimers = () => {
       const newTimers = {};
       requests.forEach((r) => {
-        if (r.status === "Pending" || r.status === "pending") {
+        if (isPendingLessonRequest(r.status)) {
           const timer = calculateTimeRemaining(r);
           if (timer) {
             newTimers[r.id] = timer;
@@ -84,7 +85,7 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
   };
 
   const activeRequests = requests.filter((r) => {
-    const isPending = r.status === "Pending" || r.status === "pending";
+    const isPending = isPendingLessonRequest(r.status);
     if (!isPending) return false;
     const timer = timers[r.id];
     return !timer?.expired;
@@ -104,9 +105,9 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
       {activeRequests.length === 0 ? (
         <div style={styles.empty}>{isHe ? 'אין בקשות ממתינות' : 'No pending requests'}</div>
       ) : (
-        <div style={styles.list}>
+          <div style={styles.list}>
           {activeRequests.map((r) => {
-            const isPending = r.status === "Pending" || r.status === "pending";
+            const isPending = isPendingLessonRequest(r.status);
             const timer = timers[r.id];
             const lessonDate = formatLessonDate(r);
             const requestedAtDate = parseFlexibleDate(r.requestedAt);

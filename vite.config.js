@@ -5,6 +5,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    allowedHosts: ['aims-projectors-soldiers-claire.trycloudflare.com'],
+    allowedHosts: ['considers-outside-needs-formed.trycloudflare.com'],
   },
 })
