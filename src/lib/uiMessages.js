@@ -22,8 +22,8 @@ const UI_MESSAGES = {
     en: "Request cancelled successfully."
   },
   adminMessageSent: {
-    he: "ההודעה נשלחה למנהל המערכת.",
-    en: "Your message has been sent to the admin."
+    he: "ההודעה נשלחה לשרשור הפרטי מול המנהלים.",
+    en: "Your message was sent to the private admin thread."
   },
   lessonCancelled: {
     he: "השיעור בוטל בהצלחה.",

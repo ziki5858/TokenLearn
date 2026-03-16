@@ -23,6 +23,7 @@ export function renderNotificationPreview(notification, language = 'he') {
   const counterpartName = String(notification?.counterpartName || '').trim();
   const senderName = String(notification?.senderName || counterpartName || '').trim();
   const courseName = String(notification?.courseName || '').trim();
+  const subject = String(notification?.subject || courseName || '').trim();
   const reason = String(notification?.rejectionReason || '').trim();
   const messageBody = String(notification?.messageBody || '').trim();
   const scheduledAt = formatNotificationDate(notification?.scheduledAt, language);
@@ -90,6 +91,22 @@ export function renderNotificationPreview(notification, language = 'he') {
         ? (isHe ? 'הודעה שנשלחה' : 'Message sent')
         : (isHe ? `הודעה חדשה מ-${senderName || 'הצד השני'}` : `New message from ${senderName || 'the other participant'}`),
       body: messageBody || (isHe ? 'נשלחה אליך הודעת תיאום חדשה.' : 'A new coordination message was sent.')
+    };
+  }
+
+  if (eventType === 'ADMIN_CONTACT_MESSAGE') {
+    const senderLabel = notification?.isOwnMessage
+      ? (isHe ? 'את/ה' : 'You')
+      : (senderName || (isHe ? 'מנהל/ת' : 'An admin'));
+
+    return {
+      tone: 'info',
+      title: subject
+        ? (isHe ? `פנייה למנהלים: ${subject}` : `Admin thread: ${subject}`)
+        : (isHe ? 'פנייה פרטית למנהלים' : 'Private admin thread'),
+      body: messageBody
+        ? `${senderLabel}: ${messageBody}`
+        : (isHe ? 'נוספה הודעה חדשה בשרשור הפרטי עם המנהלים.' : 'A new message was added to the private admin thread.')
     };
   }
 

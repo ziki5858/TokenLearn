@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/useApp";
 import HeaderTopBar from "../components/HeaderTopBar";
 import RecommendedTutors from "../components/RecommendedTutors";
@@ -12,6 +13,7 @@ import { getUiMessage } from "../lib/uiMessages";
 export default function HomePage() {
   const { language } = useI18n();
   const isHe = language === "he";
+  const navigate = useNavigate();
   const {
     user,
     approveLessonRequest,
@@ -284,6 +286,9 @@ export default function HomePage() {
                     const result = await contactAdmin(contactSubject, contactMessage);
                     if (result.success) {
                       setContactModalOpen(false);
+                      if (result.data?.actionPath) {
+                        navigate(result.data.actionPath);
+                      }
                     }
                   }}
                   style={{

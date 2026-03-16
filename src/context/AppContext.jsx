@@ -284,6 +284,23 @@ export function AppProvider({ children }) {
     });
   };
 
+  const getAdminContactThread = async (contactId) => {
+    return apiCall(async () => {
+      return apiRequest(`/api/admin/contact/${contactId}/thread`);
+    });
+  };
+
+  const replyToAdminContact = async (contactId, message) => {
+    return apiCall(async () => {
+      const payload = await apiRequest(`/api/admin/contact/${contactId}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ message })
+      });
+      addNotification(getUiMessage('messageSent'), 'success');
+      return payload;
+    });
+  };
+
   const cancelLesson = async (lessonId, metadata = {}) => {
     return apiCall(async () => {
       const payload = await apiRequest(`/api/lessons/${lessonId}`, {
@@ -894,6 +911,8 @@ export function AppProvider({ children }) {
     rejectLessonRequest,
     cancelLessonRequest,
     contactAdmin,
+    getAdminContactThread,
+    replyToAdminContact,
     getAdminDashboard,
     getAdminUsers,
     getAdminStatistics,
