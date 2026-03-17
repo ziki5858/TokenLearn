@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n/useI18n';
+import { useResponsiveLayout } from '../lib/responsive';
 
 export default function TokenBalanceMenu({ tokenSummary }) {
   const { t } = useI18n();
+  const { isMobile } = useResponsiveLayout();
   const [isHovered, setIsHovered] = useState(false);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
   const menuRef = useRef(null);
@@ -23,13 +25,20 @@ export default function TokenBalanceMenu({ tokenSummary }) {
   return (
     <div
       ref={menuRef}
-      style={styles.wrapper}
+      style={{
+        ...styles.wrapper,
+        width: isMobile ? '100%' : 'auto'
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <button
         type="button"
-        style={styles.trigger}
+        style={{
+          ...styles.trigger,
+          width: isMobile ? '100%' : 'auto',
+          justifyContent: isMobile ? 'space-between' : 'center'
+        }}
         onClick={() => setIsPinnedOpen((prev) => !prev)}
         aria-expanded={isOpen}
       >
@@ -40,20 +49,27 @@ export default function TokenBalanceMenu({ tokenSummary }) {
       </button>
 
       {isOpen && (
-        <div style={styles.dropdown}>
-          <div style={styles.row}>
+        <div
+          style={{
+            ...styles.dropdown,
+            minWidth: isMobile ? 0 : 230,
+            width: isMobile ? '100%' : 'auto',
+            left: isMobile ? 0 : 'auto'
+          }}
+        >
+          <div style={{ ...styles.row, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
             <span>{t('headerTopBar.totalBalance')}</span>
             <b>{tokenSummary.total}</b>
           </div>
-          <div style={styles.row}>
+          <div style={{ ...styles.row, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
             <span>{t('headerTopBar.availableBalance')}</span>
             <b>{tokenSummary.available}</b>
           </div>
-          <div style={styles.row}>
+          <div style={{ ...styles.row, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
             <span>{t('headerTopBar.lockedBalance')}</span>
             <b>{tokenSummary.locked}</b>
           </div>
-          <div style={styles.row}>
+          <div style={{ ...styles.row, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
             <span>{t('headerTopBar.futureTutorEarnings')}</span>
             <b>{tokenSummary.futureTutorEarnings}</b>
           </div>

@@ -6,12 +6,14 @@ import { getCourseDisplayNameFromSource } from "../lib/courseUtils";
 import { isValidDate, parseFlexibleDate, resolveLessonDateFromRequest } from "../lib/dateTimeUtils";
 import { isPendingLessonRequest } from "../lib/lessonRequestUtils";
 import { localizeDayName } from "../lib/dayUtils";
+import { useResponsiveLayout } from "../lib/responsive";
 
 export default function PendingRequests({ requests, onApprove, onReject }) {
   const navigate = useNavigate();
   const { addNotification } = useApp();
   const { language } = useI18n();
   const isHe = language === 'he';
+  const { isMobile } = useResponsiveLayout();
   const [timers, setTimers] = useState({});
 
   const calculateTimeRemaining = useCallback((request) => {
@@ -93,10 +95,10 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
 
   return (
     <section style={styles.section}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row", gap: 10, marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>{isHe ? 'בקשות שיעור שממתינות לאישור' : 'Lesson Requests Awaiting Approval'}</h2>
         {activeRequests.length > 0 && (
-          <button onClick={() => navigate('/lesson-requests')} style={styles.viewAllBtn}>
+          <button onClick={() => navigate('/lesson-requests')} style={{ ...styles.viewAllBtn, width: isMobile ? '100%' : 'auto' }}>
             {isHe ? 'לכל הבקשות ←' : 'View All Requests →'}
           </button>
         )}
@@ -116,8 +118,15 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
               : (isHe ? 'לא זמין' : 'N/A');
 
             return (
-              <div key={r.id} style={styles.row}>
-                <div style={{ flex: 1 }}>
+              <div
+                key={r.id}
+                style={{
+                  ...styles.row,
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: isMobile ? "stretch" : "flex-start"
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={styles.title}>{r.studentName} • {getCourseDisplayNameFromSource(r, language)}</div>
                   <div style={styles.sub}>
                     <div>{isHe ? 'שיעור מתוכנן' : 'Lesson scheduled'}: <b>{lessonDate}</b></div>
@@ -136,9 +145,9 @@ export default function PendingRequests({ requests, onApprove, onReject }) {
                 </div>
 
                 {isPending && (
-                  <div style={styles.actions}>
-                    <button onClick={() => handleReject(r)} style={styles.rejectBtn}>{isHe ? 'דחייה' : 'Reject'}</button>
-                    <button onClick={() => handleApprove(r)} style={styles.approveBtn}>{isHe ? 'אישור' : 'Approve'}</button>
+                  <div style={{ ...styles.actions, gridTemplateColumns: isMobile ? "1fr 1fr" : "none" }}>
+                    <button onClick={() => handleReject(r)} style={{ ...styles.rejectBtn, width: isMobile ? '100%' : 'auto' }}>{isHe ? 'דחייה' : 'Reject'}</button>
+                    <button onClick={() => handleApprove(r)} style={{ ...styles.approveBtn, width: isMobile ? '100%' : 'auto' }}>{isHe ? 'אישור' : 'Approve'}</button>
                   </div>
                 )}
               </div>

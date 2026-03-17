@@ -3,6 +3,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import TokenBalanceMenu from '../components/TokenBalanceMenu';
 import { useI18n } from '../i18n/useI18n';
 import { useApp } from '../context/useApp';
+import { useResponsiveLayout } from '../lib/responsive';
 
 function TokenHistoryIcon() {
   return (
@@ -26,16 +27,17 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const { t, isRTL } = useI18n();
   const { tokenSummary, logout, user, unreadNotificationCount } = useApp();
+  const { isMobile, isTablet } = useResponsiveLayout();
 
   const isActive = (path) => location.pathname === path;
 
   const getNavLinkStyle = (path) => ({
-    padding: '10px 16px',
+    padding: isMobile ? '9px 12px' : '10px 16px',
     borderRadius: 12,
     textDecoration: 'none',
     color: isActive(path) ? '#ffffff' : '#0f172a',
     fontWeight: isActive(path) ? 700 : 600,
-    fontSize: 14,
+    fontSize: isMobile ? 13 : 14,
     transition: 'all 0.2s ease',
     background: isActive(path)
       ? 'linear-gradient(135deg, #0ea5e9, #2563eb)'
@@ -43,7 +45,8 @@ export default function AppLayout() {
     border: isActive(path) ? '1px solid transparent' : '1px solid rgba(148, 163, 184, 0.24)',
     boxShadow: isActive(path) ? '0 8px 16px rgba(37, 99, 235, 0.25)' : '0 2px 6px rgba(15, 23, 42, 0.04)',
     cursor: 'pointer',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    flexShrink: 0
   });
 
   const handleLogout = async () => {
@@ -53,9 +56,29 @@ export default function AppLayout() {
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} style={styles.page}>
-      <header style={styles.header}>
-        <div style={styles.navWrap}>
-          <nav style={styles.navLinks}>
+      <header
+        style={{
+          ...styles.header,
+          padding: isMobile ? '12px 12px' : '16px 24px',
+          marginBottom: isMobile ? '1rem' : '1.4rem'
+        }}
+      >
+        <div
+          style={{
+            ...styles.navWrap,
+            gap: isMobile ? 12 : 16,
+            alignItems: isTablet ? 'stretch' : 'center'
+          }}
+        >
+          <nav
+            style={{
+              ...styles.navLinks,
+              width: isTablet ? '100%' : 'auto',
+              flexWrap: isMobile ? 'nowrap' : 'wrap',
+              overflowX: isMobile ? 'auto' : 'visible',
+              paddingBottom: isMobile ? 4 : 0
+            }}
+          >
             <Link to="/home" style={getNavLinkStyle('/home')}>
               🏠 {t('nav.home')}
             </Link>
@@ -95,9 +118,25 @@ export default function AppLayout() {
             )}
           </nav>
 
-          <div style={styles.controls}>
+          <div
+            style={{
+              ...styles.controls,
+              marginLeft: isTablet ? 0 : 'auto',
+              width: isTablet ? '100%' : 'auto',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              justifyContent: isTablet ? 'space-between' : 'flex-end'
+            }}
+          >
             <TokenBalanceMenu tokenSummary={tokenSummary} />
-            <button type="button" onClick={handleLogout} style={styles.logoutBtn}>
+            <button
+              type="button"
+              onClick={handleLogout}
+              style={{
+                ...styles.logoutBtn,
+                width: isMobile ? '100%' : 'auto'
+              }}
+            >
               🚪 {t('nav.logout')}
             </button>
             <LanguageSwitcher />
@@ -105,8 +144,19 @@ export default function AppLayout() {
         </div>
       </header>
 
-      <main style={styles.main}>
-        <div style={styles.contentShell}>
+      <main
+        style={{
+          ...styles.main,
+          padding: isMobile ? '0 12px 20px' : '0 24px 32px'
+        }}
+      >
+        <div
+          style={{
+            ...styles.contentShell,
+            borderRadius: isMobile ? 18 : 24,
+            padding: isMobile ? '10px 8px' : '12px 10px'
+          }}
+        >
           <Outlet />
         </div>
       </main>

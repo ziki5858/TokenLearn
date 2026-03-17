@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Button from "./Button";
 import { useI18n } from "../i18n/useI18n";
 import { getCourseDisplayName, normalizeCourse } from "../lib/courseUtils";
 import { localizeDayName, sortAvailabilitySlotsByDayAndTime } from "../lib/dayUtils";
 import { normalizePhotoUrl } from "../lib/validation";
+import { useResponsiveLayout } from "../lib/responsive";
 
 export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
   const { language } = useI18n();
   const isHe = language === "he";
+  const { isMobile } = useResponsiveLayout();
   const availability = sortAvailabilitySlotsByDayAndTime(tutor?.availabilityAsTeacher || tutor?.availability || []);
   const canBook = availability.length > 0;
 
@@ -28,33 +30,30 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
     .filter(Boolean);
 
   const aboutMe = tutor?.aboutMeAsTeacher || tutor?.about || "";
-  const [photoFailed, setPhotoFailed] = useState(false);
+  const [failedPhotoUrl, setFailedPhotoUrl] = useState("");
   const safePhotoUrl = normalizePhotoUrl(tutor?.photoUrl);
-
-  useEffect(() => {
-    setPhotoFailed(false);
-  }, [safePhotoUrl]);
+  const hasWorkingPhoto = Boolean(safePhotoUrl && failedPhotoUrl !== safePhotoUrl);
 
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
-        <div style={styles.header}>
+        <div style={{ ...styles.header, padding: isMobile ? "16px" : "20px 24px", alignItems: isMobile ? "flex-start" : "center" }}>
           <h2 style={{ margin: 0 }}>{isHe ? "פרופיל מורה" : "Tutor Profile"}</h2>
           <button onClick={onClose} style={styles.closeBtn}>✕</button>
         </div>
 
-        <div style={styles.content}>
+        <div style={{ ...styles.content, padding: isMobile ? 16 : 20 }}>
           {/* Profile Header with Photo */}
-          <div style={styles.profileHeader}>
+          <div style={{ ...styles.profileHeader, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", padding: isMobile ? 16 : 20 }}>
             <div style={styles.photoContainer}>
-              {safePhotoUrl && !photoFailed ? (
+              {hasWorkingPhoto ? (
                 <img 
                   src={safePhotoUrl} 
                   alt={tutor.name} 
                   style={styles.photo}
                   referrerPolicy="no-referrer"
                   loading="lazy"
-                  onError={() => setPhotoFailed(true)}
+                  onError={() => setFailedPhotoUrl(safePhotoUrl)}
                 />
               ) : (
                 <div style={styles.photoPlaceholder}>
@@ -62,7 +61,7 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
                 </div>
               )}
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, width: isMobile ? '100%' : 'auto' }}>
               <h3 style={{ margin: "0 0 8px 0", fontSize: 22 }}>{tutor.name}</h3>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 14, color: "#64748b" }}>
                 <div>⭐ {isHe ? "דירוג" : "Rating"}: <strong>{tutor.rating}</strong></div>
@@ -101,7 +100,7 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
             <div style={{ display: "grid", gap: 8 }}>
               {availability.length > 0 ? (
                 availability.map(slot => (
-                  <div key={slot.id} style={styles.availabilitySlot}>
+                  <div key={slot.id} style={{ ...styles.availabilitySlot, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center" }}>
                     <div style={{ fontWeight: 600 }}>{localizeDayName(slot.day, isHe)}</div>
                     <div style={{ fontSize: 14, color: "#64748b" }}>
                       {slot.startTime} - {slot.endTime}
@@ -117,8 +116,8 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
           </div>
 
           {/* Action Buttons */}
-          <div style={styles.actions}>
-            <button onClick={onClose} style={styles.cancelBtn}>
+          <div style={{ ...styles.actions, flexDirection: isMobile ? "column-reverse" : "row" }}>
+            <button onClick={onClose} style={{ ...styles.cancelBtn, width: isMobile ? '100%' : 'auto' }}>
               {isHe ? "סגירה" : "Close"}
             </button>
             <Button
@@ -128,6 +127,7 @@ export default function ViewProfileModal({ tutor, onClose, onBookLesson }) {
                 onBookLesson?.();
               }}
               disabled={!canBook}
+              style={{ width: isMobile ? '100%' : 'auto' }}
             >
               {canBook ? (isHe ? "קביעת שיעור" : "Book a Lesson") : (isHe ? "אין זמינות כרגע" : "No Availability")}
             </Button>

@@ -6,6 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useApp } from '../context/useApp';
 import { useI18n } from '../i18n/useI18n';
 import { getCourseDisplayNameFromSource } from '../lib/courseUtils';
+import { useResponsiveLayout } from '../lib/responsive';
 
 const DAY_NAMES = {
   en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
@@ -71,6 +72,7 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const { language } = useI18n();
   const isHe = language === 'he';
+  const { isMobile, isTablet } = useResponsiveLayout();
   const { getLessonCalendar, loading } = useApp();
 
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
@@ -183,12 +185,12 @@ export default function CalendarPage() {
   ];
 
   return (
-    <div style={styles.page}>
+    <div style={{ ...styles.page, padding: isMobile ? 12 : 18 }}>
       {(loading || pageLoading) && <LoadingSpinner fullScreen />}
 
-      <section style={styles.hero}>
+      <section style={{ ...styles.hero, padding: isMobile ? 16 : 24 }}>
         <div style={styles.heroText}>
-          <h1 style={styles.title}>{isHe ? 'יומן שיעורים' : 'Lesson Calendar'}</h1>
+          <h1 style={{ ...styles.title, fontSize: isMobile ? 24 : 30 }}>{isHe ? 'יומן שיעורים' : 'Lesson Calendar'}</h1>
           <p style={styles.subtitle}>
             {isHe
               ? 'תצוגה חודשית פנימית של כל השיעורים שלך, עם מעבר מהיר לשיעור, פילטרים, ובחירת יום להצגת הפרטים.'
@@ -196,18 +198,18 @@ export default function CalendarPage() {
           </p>
         </div>
 
-        <div style={styles.heroActions}>
-          <Button variant="secondary" onClick={() => setCurrentMonth(addMonths(currentMonth, -1))}>
+        <div style={{ ...styles.heroActions, width: isMobile ? '100%' : 'auto' }}>
+          <Button variant="secondary" onClick={() => setCurrentMonth(addMonths(currentMonth, -1))} style={{ width: isMobile ? '100%' : 'auto' }}>
             {isHe ? 'חודש קודם' : 'Previous Month'}
           </Button>
           <Button onClick={() => {
             const now = new Date();
             setCurrentMonth(startOfMonth(now));
             setSelectedDate(now);
-          }}>
+          }} style={{ width: isMobile ? '100%' : 'auto' }}>
             {isHe ? 'חזרה להיום' : 'Back to Today'}
           </Button>
-          <Button variant="secondary" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+          <Button variant="secondary" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} style={{ width: isMobile ? '100%' : 'auto' }}>
             {isHe ? 'חודש הבא' : 'Next Month'}
           </Button>
         </div>
@@ -232,17 +234,17 @@ export default function CalendarPage() {
         </Card>
       </section>
 
-      <section style={styles.layout}>
-        <Card style={styles.calendarCard} hoverable={false}>
+      <section style={{ ...styles.layout, gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.7fr) minmax(320px, 0.9fr)' }}>
+        <Card style={{ ...styles.calendarCard, padding: isMobile ? 14 : 18 }} hoverable={false}>
           <div style={styles.calendarHeader}>
-            <h2 style={styles.monthTitle}>{formatMonthTitle(currentMonth)}</h2>
-            <div style={styles.filters}>
-              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} style={styles.select}>
+            <h2 style={{ ...styles.monthTitle, fontSize: isMobile ? 20 : 24 }}>{formatMonthTitle(currentMonth)}</h2>
+            <div style={{ ...styles.filters, width: isMobile ? '100%' : 'auto' }}>
+              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} style={{ ...styles.select, width: isMobile ? '100%' : 'auto' }}>
                 {roleOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} style={styles.select}>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} style={{ ...styles.select, width: isMobile ? '100%' : 'auto' }}>
                 {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
@@ -251,13 +253,13 @@ export default function CalendarPage() {
           </div>
 
           <div style={styles.calendarScroll}>
-            <div style={styles.weekHeader}>
+            <div style={{ ...styles.weekHeader, minWidth: isMobile ? 560 : 720 }}>
               {DAY_NAMES[language] && DAY_NAMES[language].map((dayName) => (
                 <div key={dayName} style={styles.weekHeaderCell}>{dayName}</div>
               ))}
             </div>
 
-            <div style={styles.grid}>
+            <div style={{ ...styles.grid, minWidth: isMobile ? 560 : 720 }}>
               {days.map((day) => {
                 const key = toLocalIso(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0)).slice(0, 10);
                 const items = lessonsByDay[key] || [];
@@ -272,6 +274,7 @@ export default function CalendarPage() {
                     onClick={() => setSelectedDate(day)}
                     style={{
                       ...styles.dayCell,
+                      minHeight: isMobile ? 96 : 120,
                       ...(isCurrentMonth ? null : styles.dayCellMuted),
                       ...(isSelected ? styles.dayCellSelected : null)
                     }}
@@ -318,9 +321,9 @@ export default function CalendarPage() {
           </div>
         </Card>
 
-        <Card style={styles.detailsCard} hoverable={false}>
+        <Card style={{ ...styles.detailsCard, padding: isMobile ? 14 : 18 }} hoverable={false}>
           <div style={styles.detailsHeader}>
-            <h2 style={styles.detailsTitle}>
+            <h2 style={{ ...styles.detailsTitle, fontSize: isMobile ? 20 : 22 }}>
               {selectedDate.toLocaleDateString(isHe ? 'he-IL' : 'en-US', {
                 weekday: 'long',
                 day: 'numeric',
@@ -349,7 +352,7 @@ export default function CalendarPage() {
                   onClick={() => navigate(`/lesson/${lesson.id}`)}
                   style={styles.lessonRow}
                 >
-                  <div style={styles.lessonRowTop}>
+                  <div style={{ ...styles.lessonRowTop, flexDirection: isMobile ? 'column' : 'row' }}>
                     <strong style={{ color: '#0f172a', fontSize: 15 }}>{courseLabel}</strong>
                     <span style={{
                       ...styles.statusPill,

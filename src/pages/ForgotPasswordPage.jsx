@@ -8,12 +8,14 @@ import LinkButton from '../components/LinkButton';
 import { useI18n } from '../i18n/useI18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { translateErrorMessage } from '../lib/errorMessages';
+import { useResponsiveLayout } from '../lib/responsive';
 
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
   const { addNotification, getSecretQuestion, verifySecretAnswer, resetPassword } = useApp();
   const { t, isRTL, language } = useI18n();
+  const { isMobile } = useResponsiveLayout();
 
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
@@ -78,77 +80,89 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backgroundColor: '#e6f7ff' }} dir={isRTL ? 'rtl' : 'ltr'}>
-      <div style={{ position: 'fixed', top: 16, insetInlineEnd: 16 }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: isMobile ? '16px 12px 24px' : 16,
+        backgroundColor: '#e6f7ff'
+      }}
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
+      <div style={{ width: '100%', maxWidth: 520, display: 'grid', gap: 14 }}>
+        <div style={{ display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
         <LanguageSwitcher />
+        </div>
+        <Card style={{ maxWidth: '100%', padding: isMobile ? 20 : 24 }}>
+          <h1 style={{ textAlign: 'center', marginBottom: 24 }}>{t('common.appName')}</h1>
+          <h2 style={{ marginTop: 0, marginBottom: 6 }}>{t('auth.forgotPasswordTitle')}</h2>
+          <p style={{ marginTop: 0, marginBottom: 16, color: '#666' }}>
+            {step === 1 && t('auth.enterEmailToRecover')}
+            {step === 2 && t('auth.answerSecretQuestion')}
+            {step === 3 && t('auth.createNewPassword')}
+            {step === 4 && t('auth.passwordResetComplete')}
+          </p>
+
+          {error && <div style={{ padding: 12, marginBottom: 16, backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, color: '#991b1b' }}>{error}</div>}
+
+          {step === 1 && (
+            <form onSubmit={handleEmailSubmit}>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <Input label={t('auth.email')} type="email" value={email} onChange={setEmail} placeholder="name@example.com" />
+                <Button type="submit" style={{ width: '100%' }}>{t('auth.continue')}</Button>
+                <div style={{ textAlign: 'center', marginTop: 6, fontSize: 14 }}>
+                  {t('auth.rememberPassword')} <LinkButton onClick={() => navigate('/login')}>{t('auth.signIn')}</LinkButton>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {step === 2 && (
+            <form onSubmit={handleAnswerSubmit}>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ padding: 12, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, marginBottom: 8 }}>
+                  <strong>{t('auth.secretQuestionLabel')}</strong>
+                  <div style={{ marginTop: 6 }}>{currentUser?.secretQuestion}</div>
+                </div>
+
+                <Input label={t('auth.yourAnswer')} type="text" value={answer} onChange={setAnswer} placeholder="..." />
+                <Button type="submit" style={{ width: '100%' }}>{t('auth.verifyAnswer')}</Button>
+                <div style={{ textAlign: 'center', marginTop: 6, fontSize: 14 }}>
+                  <LinkButton onClick={() => navigate('/login')}>{t('auth.backToLogin')}</LinkButton>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {step === 3 && (
+            <form onSubmit={handleResetPassword}>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ padding: 12, backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 8, marginBottom: 8, color: '#065f46' }}>{t('auth.identityVerified')}</div>
+
+                <Input label={t('auth.newPassword')} type="password" value={newPassword} onChange={setNewPassword} placeholder="••••••••" />
+                <Input label={t('auth.confirmNewPassword')} type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" />
+                <Button type="submit" style={{ width: '100%' }}>{t('auth.resetPassword')}</Button>
+                <div style={{ textAlign: 'center', marginTop: 6, fontSize: 14 }}>
+                  <LinkButton onClick={() => navigate('/login')}>{t('auth.backToLogin')}</LinkButton>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {step === 4 && (
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ padding: 16, backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 8, textAlign: 'center' }}>
+                <div style={{ marginBottom: 8, color: '#065f46', fontWeight: 'bold', fontSize: 18 }}>{t('auth.resetSuccessTitle')}</div>
+                <div style={{ color: '#065f46' }}>{t('auth.resetSuccessBody')}</div>
+              </div>
+
+              <Button onClick={() => navigate('/login')} style={{ width: '100%' }}>{t('auth.backToLogin')}</Button>
+            </div>
+          )}
+        </Card>
       </div>
-      <Card>
-        <h1 style={{ textAlign: 'center', marginBottom: 24 }}>{t('common.appName')}</h1>
-        <h2 style={{ marginTop: 0, marginBottom: 6 }}>{t('auth.forgotPasswordTitle')}</h2>
-        <p style={{ marginTop: 0, marginBottom: 16, color: '#666' }}>
-          {step === 1 && t('auth.enterEmailToRecover')}
-          {step === 2 && t('auth.answerSecretQuestion')}
-          {step === 3 && t('auth.createNewPassword')}
-          {step === 4 && t('auth.passwordResetComplete')}
-        </p>
-
-        {error && <div style={{ padding: 12, marginBottom: 16, backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, color: '#991b1b' }}>{error}</div>}
-
-        {step === 1 && (
-          <form onSubmit={handleEmailSubmit}>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <Input label={t('auth.email')} type="email" value={email} onChange={setEmail} placeholder="name@example.com" />
-              <Button type="submit">{t('auth.continue')}</Button>
-              <div style={{ textAlign: 'center', marginTop: 6, fontSize: 14 }}>
-                {t('auth.rememberPassword')} <LinkButton onClick={() => navigate('/login')}>{t('auth.signIn')}</LinkButton>
-              </div>
-            </div>
-          </form>
-        )}
-
-        {step === 2 && (
-          <form onSubmit={handleAnswerSubmit}>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div style={{ padding: 12, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, marginBottom: 8 }}>
-                <strong>{t('auth.secretQuestionLabel')}</strong>
-                <div style={{ marginTop: 6 }}>{currentUser?.secretQuestion}</div>
-              </div>
-
-              <Input label={t('auth.yourAnswer')} type="text" value={answer} onChange={setAnswer} placeholder="..." />
-              <Button type="submit">{t('auth.verifyAnswer')}</Button>
-              <div style={{ textAlign: 'center', marginTop: 6, fontSize: 14 }}>
-                <LinkButton onClick={() => navigate('/login')}>{t('auth.backToLogin')}</LinkButton>
-              </div>
-            </div>
-          </form>
-        )}
-
-        {step === 3 && (
-          <form onSubmit={handleResetPassword}>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div style={{ padding: 12, backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 8, marginBottom: 8, color: '#065f46' }}>{t('auth.identityVerified')}</div>
-
-              <Input label={t('auth.newPassword')} type="password" value={newPassword} onChange={setNewPassword} placeholder="••••••••" />
-              <Input label={t('auth.confirmNewPassword')} type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" />
-              <Button type="submit">{t('auth.resetPassword')}</Button>
-              <div style={{ textAlign: 'center', marginTop: 6, fontSize: 14 }}>
-                <LinkButton onClick={() => navigate('/login')}>{t('auth.backToLogin')}</LinkButton>
-              </div>
-            </div>
-          </form>
-        )}
-
-        {step === 4 && (
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ padding: 16, backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 8, textAlign: 'center' }}>
-              <div style={{ marginBottom: 8, color: '#065f46', fontWeight: 'bold', fontSize: 18 }}>{t('auth.resetSuccessTitle')}</div>
-              <div style={{ color: '#065f46' }}>{t('auth.resetSuccessBody')}</div>
-            </div>
-
-            <Button onClick={() => navigate('/login')}>{t('auth.backToLogin')}</Button>
-          </div>
-        )}
-      </Card>
     </div>
   );
 }

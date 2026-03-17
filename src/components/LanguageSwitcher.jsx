@@ -1,12 +1,38 @@
 import { useI18n } from '../i18n/useI18n';
+import { useResponsiveLayout } from '../lib/responsive';
 
 export default function LanguageSwitcher() {
   const { language, setLanguage, t } = useI18n();
+  const { isMobile } = useResponsiveLayout();
 
   return (
-    <label style={styles.wrapper}>
-      <span style={styles.label}>🌐 {t('common.language')}</span>
-      <select value={language} onChange={(e) => setLanguage(e.target.value)} style={styles.select}>
+    <label
+      style={{
+        ...styles.wrapper,
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
+        width: isMobile ? '100%' : 'auto'
+      }}
+    >
+      <span
+        style={{
+          ...styles.label,
+          minWidth: isMobile ? 0 : 70,
+          whiteSpace: isMobile ? 'normal' : 'nowrap',
+          textAlign: isMobile ? 'center' : 'start'
+        }}
+      >
+        🌐 {t('common.language')}
+      </span>
+      <select
+        value={language}
+        onChange={(e) => setLanguage(e.target.value)}
+        style={{
+          ...styles.select,
+          minWidth: isMobile ? 0 : 86,
+          width: isMobile ? '100%' : 'auto'
+        }}
+      >
         <option value="he">{t('common.hebrew')}</option>
         <option value="en">{t('common.english')}</option>
       </select>

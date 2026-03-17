@@ -5,6 +5,7 @@ import CourseAutocomplete from "../components/CourseAutocomplete";
 import { useI18n } from "../i18n/useI18n";
 import { useApp } from "../context/useApp";
 import { dedupeCoursesById, getCourseListDisplayName, normalizeCourse } from "../lib/courseUtils";
+import { useResponsiveLayout } from "../lib/responsive";
 
 export default function FindTutorPage() {
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -18,6 +19,7 @@ export default function FindTutorPage() {
   const [courseOptions, setCourseOptions] = useState([]);
   const { language } = useI18n();
   const isHe = language === "he";
+  const { isMobile, isTablet } = useResponsiveLayout();
   const { searchTutors, loading, getCourses } = useApp();
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export default function FindTutorPage() {
 
   return (
     <>
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: 20 }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: isMobile ? 12 : 20 }}>
         <h1 style={{ marginTop: 0 }}>{isHe ? "חיפוש מורה" : "Find Tutor"}</h1>
         <p style={{ marginTop: 0, color: "#475569" }}>
           {isHe ? "סינון לפי מספר קורס, דירוג מינימלי או מספר שיעורים מינימלי שנלמדו." : "Filter by course number, minimum rating, or minimum lessons taught."}
@@ -92,7 +94,7 @@ export default function FindTutorPage() {
           background: "linear-gradient(135deg, #ffffff 0%, #f4f7ff 100%)",
           border: "1px solid #dbeafe",
           borderRadius: 16,
-          padding: 16,
+          padding: isMobile ? 14 : 16,
           boxShadow: "0 10px 24px rgba(15, 23, 42, 0.08)"
         }}
       >
@@ -179,9 +181,9 @@ export default function FindTutorPage() {
                 background: "white",
                 boxShadow: "0 8px 20px rgba(15, 23, 42, 0.06)",
                 display: "grid",
-                gridTemplateColumns: "1fr auto",
+                gridTemplateColumns: isTablet ? "1fr" : "1fr auto",
                 gap: 12,
-                alignItems: "center"
+                alignItems: isTablet ? "stretch" : "center"
               }}
             >
               <div style={{ display: "grid", gap: 4 }}>
@@ -201,11 +203,12 @@ export default function FindTutorPage() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
                 <button
                   style={{
                     ...primaryBtn,
-                    ...(canBook ? {} : disabledBtn)
+                    ...(canBook ? {} : disabledBtn),
+                    width: isMobile ? "100%" : "auto"
                   }}
                   onClick={() => canBook && setSelectedTutorForBooking(t)}
                   disabled={!canBook}
@@ -213,7 +216,7 @@ export default function FindTutorPage() {
                   {canBook ? (isHe ? "קביעת שיעור" : "Schedule Lesson") : (isHe ? "אין זמינות" : "No Availability")}
                 </button>
                 <button
-                  style={ghostBtn}
+                  style={{ ...ghostBtn, width: isMobile ? "100%" : "auto" }}
                   onClick={() => setSelectedTutorForProfile(t)}
                 >
                   {isHe ? "צפייה בפרופיל" : "View Profile"}

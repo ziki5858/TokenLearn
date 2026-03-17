@@ -12,6 +12,7 @@ import {
   sortAvailabilitySlotsByDayAndTime,
   toDateInputValue
 } from "../lib/dayUtils";
+import { useResponsiveLayout } from "../lib/responsive";
 
 const LESSON_DURATION_MINUTES = 60;
 const START_TIME_STEP_MINUTES = 15;
@@ -35,9 +36,14 @@ const toLocalDateTime = (dateValue, timeValue) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const isLessonMoreThanSixHoursAway = (lessonStart) => (
+  lessonStart.getTime() - Date.now() > (6 * 60 * 60 * 1000)
+);
+
 export default function BookLessonModal({ tutor, onClose, onBook }) {
   const { language } = useI18n();
   const isHe = language === "he";
+  const { isMobile } = useResponsiveLayout();
   const { createLessonRequest, addNotification, tokenSummary } = useApp();
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -140,8 +146,7 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
       addNotification(isHe ? "תאריך או שעת השיעור אינם תקינים." : "Lesson date/time is invalid.", "error");
       return;
     }
-    const sixHoursFromNow = new Date(Date.now() + (6 * 60 * 60 * 1000));
-    if (lessonStart <= sixHoursFromNow) {
+    if (!isLessonMoreThanSixHoursAway(lessonStart)) {
       addNotification(
         isHe ? "אפשר לקבוע שיעור רק אם תחילתו בעוד יותר מ-6 שעות." : "Lessons must be scheduled more than 6 hours in advance.",
         "error"
@@ -181,12 +186,12 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
-        <div style={styles.header}>
+        <div style={{ ...styles.header, padding: isMobile ? "16px 16px" : "20px 24px", alignItems: isMobile ? "flex-start" : "center" }}>
           <h2 style={{ margin: 0 }}>{isHe ? `קביעת שיעור עם ${tutor.name}` : `Book a Lesson with ${tutor.name}`}</h2>
           <button onClick={onClose} style={styles.closeBtn}>✕</button>
         </div>
 
-        <div style={styles.content}>
+        <div style={{ ...styles.content, padding: isMobile ? "16px" : "20px 24px" }}>
           {/* Tutor Info */}
           <div style={styles.tutorInfo}>
             <div style={{ display: "grid", gap: 4 }}>
@@ -235,7 +240,8 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
                     ...styles.slotCard,
                     background: selectedSlotId === slot.id ? "#dbeafe" : "white",
                     borderColor: selectedSlotId === slot.id ? "#0ea5e9" : "#e2e8f0",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    alignItems: isMobile ? "flex-start" : "center"
                   }}
                 >
                   <input
@@ -395,11 +401,11 @@ export default function BookLessonModal({ tutor, onClose, onBook }) {
           </div>
 
           {/* Action Buttons */}
-          <div style={styles.actions}>
-            <button onClick={onClose} style={styles.cancelBtn} disabled={isSubmitting}>
+          <div style={{ ...styles.actions, flexDirection: isMobile ? "column-reverse" : "row" }}>
+            <button onClick={onClose} style={{ ...styles.cancelBtn, width: isMobile ? '100%' : 'auto' }} disabled={isSubmitting}>
               {isHe ? "ביטול" : "Cancel"}
             </button>
-            <Button onClick={handleBook} disabled={isSubmitting}>
+            <Button onClick={handleBook} disabled={isSubmitting} style={{ width: isMobile ? '100%' : 'auto' }}>
               {isSubmitting ? (isHe ? "שולח/ת..." : "Sending...") : (isHe ? "שליחת בקשת שיעור" : "Send Lesson Request")}
             </Button>
           </div>

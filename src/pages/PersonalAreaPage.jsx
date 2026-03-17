@@ -8,6 +8,7 @@ import { useI18n } from "../i18n/useI18n";
 import { dedupeCoursesById, normalizeCourse } from "../lib/courseUtils";
 import { normalizeDayToEnglish } from "../lib/dayUtils";
 import { isSafeFreeText, isValidName, isValidPhone, isValidPhotoUrl, normalizePhotoUrl } from "../lib/validation";
+import { useResponsiveLayout } from "../lib/responsive";
 
 const EN_DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const HE_DAY_BY_EN = {
@@ -115,6 +116,7 @@ const expandAvailabilitySlots = (availabilitySlots = []) => (
 export default function PersonalAreaPage() {
   const { language } = useI18n();
   const isHe = language === "he";
+  const { isMobile, isTablet } = useResponsiveLayout();
   const { user, updateUserProfile, loading, addNotification, getCourses } = useApp();
   const DAYS_OF_WEEK = isHe ? ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] : EN_DAYS_OF_WEEK;
   const dayIndex = new Map(DAYS_OF_WEEK.map((day, index) => [day, index]));
@@ -448,10 +450,10 @@ export default function PersonalAreaPage() {
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: 16, display: "grid", gap: 16, position: "relative" }}>
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: isMobile ? 12 : 16, display: "grid", gap: 16, position: "relative" }}>
       {loading && <LoadingSpinner fullScreen />}
       
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row", gap: 10 }}>
         <h1 style={{ marginTop: 0 }}>{isHe ? "אזור אישי" : "Personal Area"}</h1>
         {hasChanges && (
           <div style={{
@@ -471,9 +473,10 @@ export default function PersonalAreaPage() {
       <section style={{
         ...cardStyle,
         display: "flex",
-        alignItems: "center",
+        alignItems: isMobile ? "stretch" : "center",
         justifyContent: "space-between",
-        gap: 12
+        gap: 12,
+        flexDirection: isMobile ? "column" : "row"
       }}>
         <div>
           <div style={{ fontSize: 14, color: "#475569" }}>{isHe ? "הדירוג שלך כמורה" : "Your tutor rating"}</div>
@@ -507,7 +510,7 @@ export default function PersonalAreaPage() {
 
       <section style={cardStyle}>
         <h2 style={{ margin: 0 }}>{isHe ? "כללי" : "General"}</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: isMobile ? "stretch" : "center", gap: 12, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
           <div
             style={{
               width: 96,
@@ -537,7 +540,7 @@ export default function PersonalAreaPage() {
             )}
           </div>
 
-          <div style={{ display: "grid", gap: 8, minWidth: 240 }}>
+          <div style={{ display: "grid", gap: 8, minWidth: 0, width: isMobile ? "100%" : "auto", flex: 1 }}>
             <label style={{ fontSize: 14, fontWeight: 600 }}>{isHe ? "קישור ישיר לתמונה" : "Direct image URL"}</label>
             <Input
               label={null}
@@ -582,7 +585,7 @@ export default function PersonalAreaPage() {
         {coursesAsTeacher.map((course, index) => (
           <div key={course.id} style={{
             display: "grid",
-            gridTemplateColumns: "1fr auto",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
             gap: 12,
             padding: 12,
             background: "#f8fafc",
@@ -621,7 +624,8 @@ export default function PersonalAreaPage() {
                   borderRadius: 8,
                   cursor: coursesAsTeacher.length === 1 ? "not-allowed" : "pointer",
                   fontWeight: 600,
-                  fontSize: 14
+                  fontSize: 14,
+                  width: isMobile ? "100%" : "auto"
                 }}
               >{isHe ? "הסרה" : "Remove"}</button>
             </div>
@@ -630,7 +634,7 @@ export default function PersonalAreaPage() {
         <Button
           onClick={addCourseAsTeacher}
           disabled={!generalComplete}
-          style={{ justifySelf: "start" }}
+          style={{ justifySelf: isMobile ? "stretch" : "start", width: isMobile ? "100%" : "auto" }}
         >
           + {isHe ? "הוספת קורס ללימוד" : "Add Course to Teach"}
         </Button>
@@ -659,7 +663,11 @@ export default function PersonalAreaPage() {
         {availabilityAsTeacher.map((slot) => (
           <div key={slot.id} style={{
             display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr auto",
+            gridTemplateColumns: isMobile
+              ? "1fr"
+              : isTablet
+                ? "repeat(2, minmax(0, 1fr))"
+                : "2fr 1fr 1fr auto",
             gap: 12,
             padding: 12,
             background: "#f8fafc",
@@ -727,7 +735,8 @@ export default function PersonalAreaPage() {
                   borderRadius: 10,
                   border: "1px solid #ddd",
                   outline: "none",
-                  fontSize: 14
+                  fontSize: 14,
+                  width: "100%"
                 }}
               />
             </label>
@@ -743,7 +752,8 @@ export default function PersonalAreaPage() {
                   borderRadius: 10,
                   border: "1px solid #ddd",
                   outline: "none",
-                  fontSize: 14
+                  fontSize: 14,
+                  width: "100%"
                 }}
               />
             </label>
@@ -760,7 +770,8 @@ export default function PersonalAreaPage() {
                   borderRadius: 8,
                   cursor: availabilityAsTeacher.length === 1 ? "not-allowed" : "pointer",
                   fontWeight: 600,
-                  fontSize: 14
+                  fontSize: 14,
+                  width: isMobile ? "100%" : "auto"
                 }}
               >{isHe ? "הסרה" : "Remove"}</button>
             </div>
@@ -769,7 +780,7 @@ export default function PersonalAreaPage() {
         <Button
           onClick={addAvailabilityAsTeacher}
           disabled={!generalComplete}
-          style={{ justifySelf: "start" }}
+          style={{ justifySelf: isMobile ? "stretch" : "start", width: isMobile ? "100%" : "auto" }}
         >
           + {isHe ? "הוספת חלון זמן" : "Add Time Slot"}
         </Button>
@@ -824,7 +835,7 @@ export default function PersonalAreaPage() {
         {coursesAsStudent.map((course, index) => (
           <div key={course.id} style={{
             display: "grid",
-            gridTemplateColumns: "1fr auto",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
             gap: 12,
             padding: 12,
             background: "#f8fafc",
@@ -863,7 +874,8 @@ export default function PersonalAreaPage() {
                   borderRadius: 8,
                   cursor: coursesAsStudent.length === 1 ? "not-allowed" : "pointer",
                   fontWeight: 600,
-                  fontSize: 14
+                  fontSize: 14,
+                  width: isMobile ? "100%" : "auto"
                 }}
               >{isHe ? "הסרה" : "Remove"}</button>
             </div>
@@ -872,7 +884,7 @@ export default function PersonalAreaPage() {
         <Button
           onClick={addCourseAsStudent}
           disabled={!generalComplete}
-          style={{ justifySelf: "start" }}
+          style={{ justifySelf: isMobile ? "stretch" : "start", width: isMobile ? "100%" : "auto" }}
         >
           + {isHe ? "הוספת קורס ללמידה" : "Add Course to Learn"}
         </Button>
@@ -923,7 +935,7 @@ export default function PersonalAreaPage() {
       </section>
 
       <div
-        style={{ display: "flex", justifyContent: "flex-end" }}
+        style={{ display: "flex", justifyContent: isMobile ? "stretch" : "flex-end" }}
         title={!generalComplete ? blockedSectionMessage : undefined}
         onClick={() => {
           if (!generalComplete) {
@@ -931,7 +943,7 @@ export default function PersonalAreaPage() {
           }
         }}
       >
-        <Button onClick={handleSave} disabled={!generalComplete}>{isHe ? "שמירה" : "Save"}</Button>
+        <Button onClick={handleSave} disabled={!generalComplete} style={{ width: isMobile ? "100%" : "auto" }}>{isHe ? "שמירה" : "Save"}</Button>
       </div>
     </div>
   );

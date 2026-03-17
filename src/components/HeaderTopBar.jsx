@@ -4,27 +4,68 @@ import { useApp } from '../context/useApp';
 import { useI18n } from '../i18n/useI18n';
 import LanguageSwitcher from './LanguageSwitcher';
 import TokenBalanceMenu from './TokenBalanceMenu';
+import { useResponsiveLayout } from '../lib/responsive';
 
 export default function HeaderTopBar({ tutorRating = null, onContactUs }) {
   const navigate = useNavigate();
   const { user, tokenSummary } = useApp();
   const { t } = useI18n();
+  const { isMobile, isTablet } = useResponsiveLayout();
 
   return (
-    <header style={styles.header}>
-      <div style={styles.left}>
-        <button onClick={onContactUs} style={styles.contactBtn}>
+    <header
+      style={{
+        ...styles.header,
+        flexDirection: isTablet ? 'column' : 'row',
+        alignItems: isTablet ? 'stretch' : 'center',
+        padding: isMobile ? '12px' : '16px 24px'
+      }}
+    >
+      <div
+        style={{
+          ...styles.left,
+          width: isTablet ? '100%' : 'auto',
+          flexWrap: 'wrap'
+        }}
+      >
+        <button
+          onClick={onContactUs}
+          style={{
+            ...styles.contactBtn,
+            flex: isMobile ? '1 1 180px' : '0 0 auto'
+          }}
+        >
           💬 {t('headerTopBar.contactUs')}
         </button>
         {user.isAdmin && (
-          <button onClick={() => navigate('/admin')} style={styles.adminBtn}>
+          <button
+            onClick={() => navigate('/admin')}
+            style={{
+              ...styles.adminBtn,
+              flex: isMobile ? '1 1 180px' : '0 0 auto'
+            }}
+          >
             🔧 {t('headerTopBar.adminPanel')}
           </button>
         )}
       </div>
 
-      <div style={styles.right}>
-        <div style={styles.ratingPill}>
+      <div
+        style={{
+          ...styles.right,
+          width: isTablet ? '100%' : 'auto',
+          marginLeft: isTablet ? 0 : 'auto',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center'
+        }}
+      >
+        <div
+          style={{
+            ...styles.ratingPill,
+            width: isMobile ? '100%' : 'auto',
+            textAlign: isMobile ? 'center' : 'start'
+          }}
+        >
           {t('headerTopBar.tutorRating')}: <b>{tutorRating ?? t('common.na')}</b>
         </div>
         <TokenBalanceMenu tokenSummary={tokenSummary} />

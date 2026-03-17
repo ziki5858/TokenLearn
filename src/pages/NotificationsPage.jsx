@@ -6,6 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useApp } from '../context/useApp';
 import { useI18n } from '../i18n/useI18n';
 import { formatNotificationDate, renderNotificationPreview } from '../lib/notificationInbox';
+import { useResponsiveLayout } from '../lib/responsive';
 
 const getThreadStatusMeta = (status, isHe) => {
   const normalized = String(status || '').trim().toLowerCase();
@@ -29,6 +30,7 @@ export default function NotificationsPage() {
   const [searchParams] = useSearchParams();
   const { language } = useI18n();
   const isHe = language === 'he';
+  const { isMobile, isTablet } = useResponsiveLayout();
   const activeContactId = searchParams.get('contact');
   const isThreadView = Boolean(activeContactId);
   const {
@@ -193,16 +195,16 @@ export default function NotificationsPage() {
     const statusMeta = getThreadStatusMeta(thread?.status, isHe);
     const ownerName = thread?.ownerName || (isHe ? 'משתמש/ת' : 'User');
 
-    return (
-      <div style={styles.page}>
+      return (
+      <div style={{ ...styles.page, padding: isMobile ? 12 : 18 }}>
         {(loading || pageLoading) && <LoadingSpinner fullScreen />}
 
-        <section style={styles.threadHero}>
+        <section style={{ ...styles.threadHero, padding: isMobile ? 16 : 24 }}>
           <div style={styles.threadHeroCopy}>
-            <button type="button" onClick={() => navigate('/messages')} style={styles.backButton}>
+            <button type="button" onClick={() => navigate('/messages')} style={{ ...styles.backButton, width: isMobile ? '100%' : 'fit-content' }}>
               ← {isHe ? 'חזרה לתיבה' : 'Back to inbox'}
             </button>
-            <h1 style={styles.title}>{thread?.subject || (isHe ? 'פנייה פרטית למנהלים' : 'Private admin thread')}</h1>
+            <h1 style={{ ...styles.title, fontSize: isMobile ? 24 : 30 }}>{thread?.subject || (isHe ? 'פנייה פרטית למנהלים' : 'Private admin thread')}</h1>
             <p style={styles.subtitle}>
               {thread?.viewerIsAdmin
                 ? (isHe
@@ -214,7 +216,7 @@ export default function NotificationsPage() {
             </p>
           </div>
 
-          <div style={styles.threadMeta}>
+          <div style={{ ...styles.threadMeta, justifyItems: isMobile ? 'start' : 'end', width: isTablet ? '100%' : 'auto' }}>
             <span style={{ ...styles.statusPill, background: statusMeta.background, color: statusMeta.color }}>
               {statusMeta.label}
             </span>
@@ -235,7 +237,7 @@ export default function NotificationsPage() {
             </div>
           </Card>
         ) : (
-          <Card style={styles.threadCard} hoverable={false}>
+          <Card style={{ ...styles.threadCard, padding: isMobile ? 14 : 24 }} hoverable={false}>
             <div style={styles.threadWrap}>
               {messages.length === 0 ? (
                 <div style={styles.emptyThread}>
@@ -255,10 +257,11 @@ export default function NotificationsPage() {
                         key={item.id}
                         style={{
                           ...styles.messageBubble,
+                          maxWidth: isMobile ? '100%' : '88%',
                           ...(item.isOwnMessage ? styles.messageBubbleOwn : styles.messageBubbleOther)
                         }}
                       >
-                        <div style={styles.messageMetaRow}>
+                        <div style={{ ...styles.messageMetaRow, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center' }}>
                           <strong>{senderLabel}</strong>
                           <span style={styles.smallMeta}>
                             {formatNotificationDate(item.createdAt || item.scheduledAt, language)}
@@ -283,11 +286,11 @@ export default function NotificationsPage() {
                 style={styles.textarea}
                 rows={4}
               />
-              <div style={styles.composeActions}>
-                <Button variant="secondary" onClick={() => navigate('/messages')}>
+              <div style={{ ...styles.composeActions, flexDirection: isMobile ? 'column-reverse' : 'row' }}>
+                <Button variant="secondary" onClick={() => navigate('/messages')} style={{ width: isMobile ? '100%' : 'auto' }}>
                   {isHe ? 'חזרה לתיבה' : 'Back'}
                 </Button>
-                <Button onClick={handleSendReply} disabled={isSendingReply}>
+                <Button onClick={handleSendReply} disabled={isSendingReply} style={{ width: isMobile ? '100%' : 'auto' }}>
                   {isSendingReply ? (isHe ? 'שולח/ת...' : 'Sending...') : (isHe ? 'שליחת תגובה' : 'Send Reply')}
                 </Button>
               </div>
@@ -299,12 +302,12 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div style={styles.page}>
+    <div style={{ ...styles.page, padding: isMobile ? 12 : 18 }}>
       {(loading || pageLoading) && <LoadingSpinner fullScreen />}
 
-      <section style={styles.hero}>
+      <section style={{ ...styles.hero, padding: isMobile ? 16 : 24 }}>
         <div>
-          <h1 style={styles.title}>{isHe ? 'תיבת הודעות' : 'Message Inbox'}</h1>
+          <h1 style={{ ...styles.title, fontSize: isMobile ? 24 : 30 }}>{isHe ? 'תיבת הודעות' : 'Message Inbox'}</h1>
           <p style={styles.subtitle}>
             {isHe
               ? `כאן מופיעים אישורים, ביטולים, תזכורות, הודעות תיאום ושרשורים פרטיים מול המנהלים. ${unreadNotificationCount > 0 ? `יש ${unreadNotificationCount} הודעות שלא נקראו.` : 'אין כרגע הודעות שלא נקראו.'}`
@@ -312,14 +315,14 @@ export default function NotificationsPage() {
           </p>
         </div>
 
-        <div style={styles.toolbar}>
-          <Button variant={unreadOnly ? 'secondary' : 'primary'} onClick={() => setUnreadOnly(false)}>
+        <div style={{ ...styles.toolbar, width: isMobile ? '100%' : 'auto', flexDirection: isMobile ? 'column' : 'row' }}>
+          <Button variant={unreadOnly ? 'secondary' : 'primary'} onClick={() => setUnreadOnly(false)} style={{ width: isMobile ? '100%' : 'auto' }}>
             {isHe ? 'הכול' : 'All'}
           </Button>
-          <Button variant={unreadOnly ? 'primary' : 'secondary'} onClick={() => setUnreadOnly(true)}>
+          <Button variant={unreadOnly ? 'primary' : 'secondary'} onClick={() => setUnreadOnly(true)} style={{ width: isMobile ? '100%' : 'auto' }}>
             {isHe ? 'רק לא נקראו' : 'Unread Only'}
           </Button>
-          <Button variant="secondary" onClick={handleMarkAllRead} disabled={unreadNotificationCount === 0}>
+          <Button variant="secondary" onClick={handleMarkAllRead} disabled={unreadNotificationCount === 0} style={{ width: isMobile ? '100%' : 'auto' }}>
             {isHe ? 'סימון הכול כנקרא' : 'Mark All Read'}
           </Button>
         </div>
@@ -345,6 +348,7 @@ export default function NotificationsPage() {
                 key={item.id}
                 style={{
                   ...styles.card,
+                  padding: isMobile ? 14 : 24,
                   ...(item.isRead ? styles.cardRead : styles.cardUnread)
                 }}
                 hoverable={false}
@@ -359,20 +363,20 @@ export default function NotificationsPage() {
 
                 <div style={styles.cardBody}>{preview.body}</div>
 
-                <div style={styles.cardFooter}>
+                <div style={{ ...styles.cardFooter, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
                   <div style={styles.metaRow}>
                     {item.courseName && <span style={styles.coursePill}>{item.courseName}</span>}
                     {item.counterpartName && <span style={styles.counterpartLabel}>{item.counterpartName}</span>}
                   </div>
 
-                  <div style={styles.actions}>
+                  <div style={{ ...styles.actions, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'stretch' : 'flex-end', flexDirection: isMobile ? 'column' : 'row' }}>
                     {!item.isRead && (
-                      <Button variant="secondary" onClick={() => handleMarkRead(item.id)}>
+                      <Button variant="secondary" onClick={() => handleMarkRead(item.id)} style={{ width: isMobile ? '100%' : 'auto' }}>
                         {isHe ? 'סימון כנקרא' : 'Mark Read'}
                       </Button>
                     )}
                     {item.actionPath && (
-                      <Button onClick={() => handleOpen(item)}>
+                      <Button onClick={() => handleOpen(item)} style={{ width: isMobile ? '100%' : 'auto' }}>
                         {isHe ? 'פתיחה' : 'Open'}
                       </Button>
                     )}

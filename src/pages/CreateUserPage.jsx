@@ -13,6 +13,7 @@ import { getGoogleIdToken } from '../lib/googleIdentity';
 import { resolvePostAuthPath } from '../lib/authNavigation';
 import { translateErrorMessage } from '../lib/errorMessages';
 import { isSafeFreeText, isValidName } from '../lib/validation';
+import { useResponsiveLayout } from '../lib/responsive';
 
 export default function CreateUserPage() {
   const [firstName, setFirstName] = useState('');
@@ -25,6 +26,7 @@ export default function CreateUserPage() {
   const navigate = useNavigate();
   const { addNotification, register, googleLogin } = useApp();
   const { t, isRTL, language } = useI18n();
+  const { isMobile } = useResponsiveLayout();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -100,44 +102,56 @@ export default function CreateUserPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backgroundColor: '#e6f7ff' }} dir={isRTL ? 'rtl' : 'ltr'}>
-      <div style={{ position: 'fixed', top: 16, insetInlineEnd: 16 }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: isMobile ? '16px 12px 24px' : 16,
+        backgroundColor: '#e6f7ff'
+      }}
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
+      <div style={{ width: '100%', maxWidth: 520, display: 'grid', gap: 14 }}>
+        <div style={{ display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
         <LanguageSwitcher />
+        </div>
+        <Card style={{ maxWidth: '100%', padding: isMobile ? 20 : 24 }}>
+          <form onSubmit={handleSubmit}>
+            <h1 style={{ textAlign: 'center', marginBottom: 24 }}>{t('common.appName')}</h1>
+            <h2 style={{ marginTop: 0, marginBottom: 6 }}>{t('auth.createAccount')}</h2>
+            <p style={{ marginTop: 0, marginBottom: 16, color: '#666' }}>{t('auth.signUpToGetStarted')}</p>
+
+            <div style={{ display: 'grid', gap: 12 }}>
+              <Button type="button" onClick={handleGoogleSignup} style={{ width: '100%' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {t('auth.continueWithGoogle')}
+                  <img src={googleIcon} alt="Google" style={{ width: 18, height: 18, objectFit: 'contain' }} />
+                </span>
+              </Button>
+
+              <Divider label={t('common.or')} />
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+                <Input label={t('auth.firstName')} type="text" value={firstName} onChange={setFirstName} placeholder="John" />
+                <Input label={t('auth.lastName')} type="text" value={lastName} onChange={setLastName} placeholder="Doe" />
+              </div>
+              <Input label={t('auth.email')} type="email" value={email} onChange={setEmail} placeholder="name@example.com" />
+              <Input label={t('auth.password')} type="password" value={password} onChange={setPassword} placeholder="••••••••" />
+              <Input label={t('auth.confirmPassword')} type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" />
+              <Input label={t('auth.secretQuestion')} type="text" value={secretQuestion} onChange={setSecretQuestion} placeholder="e.g., Pet name" />
+              <Input label={t('auth.answer')} type="text" value={secretAnswer} onChange={setSecretAnswer} placeholder="Your answer" />
+
+              <Button type="submit" style={{ width: '100%' }}>{t('auth.createAccount')}</Button>
+
+              <div style={{ textAlign: 'center', marginTop: 6, fontSize: 14 }}>
+                {t('auth.alreadyHaveAccount')} <LinkButton onClick={() => navigate('/login')}>{t('auth.signIn')}</LinkButton>
+              </div>
+            </div>
+          </form>
+        </Card>
       </div>
-      <Card>
-        <form onSubmit={handleSubmit}>
-          <h1 style={{ textAlign: 'center', marginBottom: 24 }}>{t('common.appName')}</h1>
-          <h2 style={{ marginTop: 0, marginBottom: 6 }}>{t('auth.createAccount')}</h2>
-          <p style={{ marginTop: 0, marginBottom: 16, color: '#666' }}>{t('auth.signUpToGetStarted')}</p>
-
-          <div style={{ display: 'grid', gap: 12 }}>
-            <Button type="button" onClick={handleGoogleSignup}>
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                {t('auth.continueWithGoogle')}
-                <img src={googleIcon} alt="Google" style={{ width: 18, height: 18, objectFit: 'contain' }} />
-              </span>
-            </Button>
-
-            <Divider label={t('common.or')} />
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Input label={t('auth.firstName')} type="text" value={firstName} onChange={setFirstName} placeholder="John" />
-              <Input label={t('auth.lastName')} type="text" value={lastName} onChange={setLastName} placeholder="Doe" />
-            </div>
-            <Input label={t('auth.email')} type="email" value={email} onChange={setEmail} placeholder="name@example.com" />
-            <Input label={t('auth.password')} type="password" value={password} onChange={setPassword} placeholder="••••••••" />
-            <Input label={t('auth.confirmPassword')} type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" />
-            <Input label={t('auth.secretQuestion')} type="text" value={secretQuestion} onChange={setSecretQuestion} placeholder="e.g., Pet name" />
-            <Input label={t('auth.answer')} type="text" value={secretAnswer} onChange={setSecretAnswer} placeholder="Your answer" />
-
-            <Button type="submit">{t('auth.createAccount')}</Button>
-
-            <div style={{ textAlign: 'center', marginTop: 6, fontSize: 14 }}>
-              {t('auth.alreadyHaveAccount')} <LinkButton onClick={() => navigate('/login')}>{t('auth.signIn')}</LinkButton>
-            </div>
-          </div>
-        </form>
-      </Card>
     </div>
   );
 }

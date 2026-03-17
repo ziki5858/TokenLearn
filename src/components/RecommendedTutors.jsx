@@ -3,12 +3,14 @@ import BookLessonModal from "./BookLessonModal";
 import ViewProfileModal from "./ViewProfileModal";
 import { useI18n } from "../i18n/useI18n";
 import { getCourseListDisplayName } from "../lib/courseUtils";
+import { useResponsiveLayout } from "../lib/responsive";
 
 export default function RecommendedTutors({ tutors }) {
   const [selectedTutorForBooking, setSelectedTutorForBooking] = useState(null);
   const [selectedTutorForProfile, setSelectedTutorForProfile] = useState(null);
   const { language } = useI18n();
   const isHe = language === 'he';
+  const { isMobile } = useResponsiveLayout();
 
   const handleBook = (bookingData) => {
     console.log("Booking data:", bookingData);
@@ -22,7 +24,7 @@ export default function RecommendedTutors({ tutors }) {
         {tutors.length === 0 ? (
           <div style={styles.empty}>{isHe ? 'אין כרגע המלצות' : 'No recommendations right now'}</div>
         ) : (
-          <div style={styles.grid}>
+          <div style={{ ...styles.grid, gridTemplateColumns: `repeat(auto-fit, minmax(${isMobile ? 180 : 220}px, 1fr))` }}>
             {tutors.map(t => {
               const coursesLabel = getCourseListDisplayName(t.courseOptions || t.courses, language);
               return (
@@ -32,11 +34,11 @@ export default function RecommendedTutors({ tutors }) {
                 {coursesLabel && (
                   <div style={styles.course}>{coursesLabel}</div>
                 )}
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => setSelectedTutorForProfile(t)} style={styles.viewBtn}>
+                <div style={{ display: "flex", gap: 6, flexDirection: isMobile ? "column" : "row" }}>
+                  <button onClick={() => setSelectedTutorForProfile(t)} style={{ ...styles.viewBtn, width: isMobile ? '100%' : 'auto' }}>
                     {isHe ? 'צפייה בפרופיל' : 'View Profile'}
                   </button>
-                  <button onClick={() => setSelectedTutorForBooking(t)} style={styles.bookBtn}>
+                  <button onClick={() => setSelectedTutorForBooking(t)} style={{ ...styles.bookBtn, width: isMobile ? '100%' : 'auto' }}>
                     {isHe ? 'הזמנת שיעור' : 'Book Lesson'}
                   </button>
                 </div>

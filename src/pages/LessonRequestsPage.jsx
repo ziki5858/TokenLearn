@@ -8,6 +8,7 @@ import { getCourseDisplayNameFromSource } from "../lib/courseUtils";
 import { isValidDate, parseFlexibleDate, resolveLessonDateFromRequest } from "../lib/dateTimeUtils";
 import { isPendingLessonRequest, normalizeLessonRequestStatus } from "../lib/lessonRequestUtils";
 import { localizeDayName } from "../lib/dayUtils";
+import { useResponsiveLayout } from "../lib/responsive";
 
 const STUDENT_SECTION_ORDER = ["pending", "approved", "completed", "rejected", "cancelled", "expired"];
 const TEACHER_SECTION_ORDER = ["pending", "approved", "completed", "rejected", "cancelled", "expired"];
@@ -15,6 +16,7 @@ const TEACHER_SECTION_ORDER = ["pending", "approved", "completed", "rejected", "
 export default function LessonRequestsPage() {
   const { language } = useI18n();
   const isHe = language === "he";
+  const { isMobile } = useResponsiveLayout();
   const {
     approveLessonRequest,
     rejectLessonRequest,
@@ -342,18 +344,19 @@ export default function LessonRequestsPage() {
         </div>
 
         <div style={styles.cardContent}>
-          <InfoRow label={isHe ? "שיעור מתוכנן:" : "Lesson Scheduled:"} value={<span style={styles.primaryInfo}>{formatLessonDate(request)}</span>} />
-          <InfoRow label={isHe ? "יום מועדף:" : "Preferred day:"} value={slotInfo.dayLabel} />
-          <InfoRow label={isHe ? "חלון שנשלח:" : "Requested window:"} value={slotInfo.preferredWindow} />
-          <InfoRow label={isHe ? "תאריך ושעה שנבחרו:" : "Selected date & time:"} value={slotInfo.selectedDateTime} />
-          {request.message && <InfoRow label={isHe ? "ההודעה שלי:" : "My Message:"} value={<span style={styles.italicText}>"{request.message}"</span>} />}
+          <InfoRow label={isHe ? "שיעור מתוכנן:" : "Lesson Scheduled:"} value={<span style={styles.primaryInfo}>{formatLessonDate(request)}</span>} stack={isMobile} />
+          <InfoRow label={isHe ? "יום מועדף:" : "Preferred day:"} value={slotInfo.dayLabel} stack={isMobile} />
+          <InfoRow label={isHe ? "חלון שנשלח:" : "Requested window:"} value={slotInfo.preferredWindow} stack={isMobile} />
+          <InfoRow label={isHe ? "תאריך ושעה שנבחרו:" : "Selected date & time:"} value={slotInfo.selectedDateTime} stack={isMobile} />
+          {request.message && <InfoRow label={isHe ? "ההודעה שלי:" : "My Message:"} value={<span style={styles.italicText}>"{request.message}"</span>} stack={isMobile} />}
           {request.rejectionReason && (
             <InfoRow
               label={isHe ? "סיבת דחייה:" : "Rejection Reason:"}
               value={<span style={styles.errorText}>"{request.rejectionReason}"</span>}
+              stack={isMobile}
             />
           )}
-          <InfoRow label={isHe ? "נשלח בתאריך:" : "Requested At:"} value={<span style={styles.mutedSmall}>{formatRequestTimestamp(request.requestedAt)}</span>} />
+          <InfoRow label={isHe ? "נשלח בתאריך:" : "Requested At:"} value={<span style={styles.mutedSmall}>{formatRequestTimestamp(request.requestedAt)}</span>} stack={isMobile} />
 
           {bucket === "pending" && timer && (
             <div style={{
@@ -378,8 +381,8 @@ export default function LessonRequestsPage() {
         </div>
 
         {bucket === "pending" && !timer?.expired && (
-          <div style={styles.cardActions}>
-            <button onClick={() => openCancelModal(request)} style={styles.cancelBtn} disabled={loading}>
+          <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
+            <button onClick={() => openCancelModal(request)} style={{ ...styles.cancelBtn, width: isMobile ? '100%' : 'auto' }} disabled={loading}>
               {isHe ? "ביטול בקשה" : "Cancel Request"}
             </button>
           </div>
@@ -409,18 +412,19 @@ export default function LessonRequestsPage() {
         </div>
 
         <div style={styles.cardContent}>
-          <InfoRow label={isHe ? "שיעור מתוכנן:" : "Lesson Scheduled:"} value={<span style={styles.primaryInfo}>{formatLessonDate(request)}</span>} />
-          <InfoRow label={isHe ? "יום מועדף:" : "Preferred day:"} value={slotInfo.dayLabel} />
-          <InfoRow label={isHe ? "חלון שנשלח:" : "Requested window:"} value={slotInfo.preferredWindow} />
-          <InfoRow label={isHe ? "תאריך ושעה שנבחרו:" : "Selected date & time:"} value={slotInfo.selectedDateTime} />
-          {request.message && <InfoRow label={isHe ? "הודעת התלמיד/ה:" : "Student's Message:"} value={<span style={styles.italicText}>"{request.message}"</span>} />}
+          <InfoRow label={isHe ? "שיעור מתוכנן:" : "Lesson Scheduled:"} value={<span style={styles.primaryInfo}>{formatLessonDate(request)}</span>} stack={isMobile} />
+          <InfoRow label={isHe ? "יום מועדף:" : "Preferred day:"} value={slotInfo.dayLabel} stack={isMobile} />
+          <InfoRow label={isHe ? "חלון שנשלח:" : "Requested window:"} value={slotInfo.preferredWindow} stack={isMobile} />
+          <InfoRow label={isHe ? "תאריך ושעה שנבחרו:" : "Selected date & time:"} value={slotInfo.selectedDateTime} stack={isMobile} />
+          {request.message && <InfoRow label={isHe ? "הודעת התלמיד/ה:" : "Student's Message:"} value={<span style={styles.italicText}>"{request.message}"</span>} stack={isMobile} />}
           {request.rejectionReason && (
             <InfoRow
               label={isHe ? "סיבת דחייה שנשלחה:" : "Sent rejection reason:"}
               value={<span style={styles.errorText}>"{request.rejectionReason}"</span>}
+              stack={isMobile}
             />
           )}
-          <InfoRow label={isHe ? "נשלח בתאריך:" : "Requested At:"} value={<span style={styles.mutedSmall}>{formatRequestTimestamp(request.requestedAt)}</span>} />
+          <InfoRow label={isHe ? "נשלח בתאריך:" : "Requested At:"} value={<span style={styles.mutedSmall}>{formatRequestTimestamp(request.requestedAt)}</span>} stack={isMobile} />
 
           {bucket === "pending" && timer && (
             <div style={{
@@ -445,11 +449,11 @@ export default function LessonRequestsPage() {
         </div>
 
         {bucket === "pending" && !timer?.expired && (
-          <div style={styles.cardActions}>
-            <button onClick={() => openRejectModal(request)} style={styles.rejectBtn} disabled={loading}>
+          <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
+            <button onClick={() => openRejectModal(request)} style={{ ...styles.rejectBtn, width: isMobile ? '100%' : 'auto' }} disabled={loading}>
               {isHe ? "דחייה" : "Reject"}
             </button>
-            <Button onClick={() => handleApprove(request.id)} disabled={loading}>
+            <Button onClick={() => handleApprove(request.id)} disabled={loading} style={{ width: isMobile ? '100%' : 'auto' }}>
               {isHe ? "אישור שיעור" : "Approve Lesson"}
             </Button>
           </div>
@@ -462,23 +466,23 @@ export default function LessonRequestsPage() {
   const teacherSections = buildSectionMeta(isHe, "teacher");
 
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", padding: 20 }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto", padding: isMobile ? 12 : 20 }}>
       {loading && <LoadingSpinner fullScreen />}
       <h1 style={{ marginTop: 0 }}>{isHe ? "בקשות שיעור" : "Lesson Requests"}</h1>
       <p style={{ marginTop: 0, color: "#64748b", marginBottom: 20 }}>
         {isHe ? "ניהול בקשות שיעור כתלמיד/ה וכמורה, מחולק לפי סטטוס כדי שיהיה קל לעקוב." : "Manage lesson requests as student and teacher, grouped by status for easier tracking."}
       </p>
 
-      <div style={styles.tabContainer}>
+      <div style={{ ...styles.tabContainer, flexDirection: isMobile ? "column" : "row" }}>
         <button
           onClick={() => setActiveTab("student")}
-          style={{ ...styles.tab, ...(activeTab === "student" ? styles.tabActive : {}) }}
+          style={{ ...styles.tab, width: isMobile ? "100%" : "auto", ...(activeTab === "student" ? styles.tabActive : {}) }}
         >
           {isHe ? "הבקשות שלי כתלמיד/ה" : "My Requests as Student"} ({studentPendingCount})
         </button>
         <button
           onClick={() => setActiveTab("teacher")}
-          style={{ ...styles.tab, ...(activeTab === "teacher" ? styles.tabActive : {}) }}
+          style={{ ...styles.tab, width: isMobile ? "100%" : "auto", ...(activeTab === "teacher" ? styles.tabActive : {}) }}
         >
           {isHe ? "בקשות חדשות מתלמידים" : "New Student Requests"} ({teacherPendingCount})
         </button>
@@ -533,7 +537,7 @@ export default function LessonRequestsPage() {
               <h3 style={{ margin: 0 }}>{isHe ? "דחיית בקשת שיעור" : "Reject Lesson Request"}</h3>
               <button onClick={() => setRejectModalOpen(false)} style={styles.modalCloseBtn}>✕</button>
             </div>
-            <div style={styles.modalBody}>
+          <div style={styles.modalBody}>
               <p style={{ margin: "0 0 16px", color: "#64748b" }}>
                 {isHe ? "את/ה עומד/ת לדחות בקשת שיעור מאת" : "You are about to reject a lesson request from"} <strong>{selectedRequestForRejection.studentName}</strong>.
                 {isHe ? " נא לציין סיבה כדי שיוכלו להבין למה." : " Please provide a reason so they can understand why."}
@@ -549,11 +553,11 @@ export default function LessonRequestsPage() {
                 />
               </label>
             </div>
-            <div style={styles.modalActions}>
-              <button onClick={() => setRejectModalOpen(false)} style={styles.modalCancelBtn} disabled={loading}>
+            <div style={{ ...styles.modalActions, flexDirection: isMobile ? 'column-reverse' : 'row' }}>
+              <button onClick={() => setRejectModalOpen(false)} style={{ ...styles.modalCancelBtn, width: isMobile ? '100%' : 'auto' }} disabled={loading}>
                 {isHe ? "ביטול" : "Cancel"}
               </button>
-              <button onClick={handleReject} style={styles.modalRejectBtn} disabled={loading}>
+              <button onClick={handleReject} style={{ ...styles.modalRejectBtn, width: isMobile ? '100%' : 'auto' }} disabled={loading}>
                 {isHe ? "דחיית בקשה" : "Reject Request"}
               </button>
             </div>
@@ -576,9 +580,9 @@ export default function LessonRequestsPage() {
   );
 }
 
-function InfoRow({ label, value }) {
+function InfoRow({ label, value, stack = false }) {
   return (
-    <div style={styles.infoRow}>
+    <div style={{ ...styles.infoRow, gridTemplateColumns: stack ? "1fr" : "160px 1fr" }}>
       <strong>{label}</strong>
       <span>{value}</span>
     </div>

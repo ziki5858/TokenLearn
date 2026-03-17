@@ -9,10 +9,12 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { useI18n } from "../i18n/useI18n";
 import { getCourseDisplayNameFromSource } from "../lib/courseUtils";
 import { getUiMessage } from "../lib/uiMessages";
+import { useResponsiveLayout } from "../lib/responsive";
 
 export default function HomePage() {
   const { language } = useI18n();
   const isHe = language === "he";
+  const { isMobile } = useResponsiveLayout();
   const navigate = useNavigate();
   const {
     user,
@@ -107,6 +109,8 @@ export default function HomePage() {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
+      gap: 12,
+      flexWrap: 'wrap',
       padding: 20,
       borderBottom: '1px solid #e2e8f0'
     },
@@ -135,6 +139,7 @@ export default function HomePage() {
       display: 'flex',
       gap: 12,
       justifyContent: 'flex-end',
+      flexDirection: isMobile ? 'column-reverse' : 'row',
       padding: 20,
       borderTop: '1px solid #e2e8f0'
     },
@@ -172,7 +177,7 @@ export default function HomePage() {
         }}
       />
 
-      <main style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+      <main style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? 12 : 16 }}>
         <RecommendedTutors tutors={tutors} />
         <PendingRequests 
           requests={requests}
@@ -212,7 +217,7 @@ export default function HomePage() {
                 </label>
               </div>
               <div style={styles.modalActions}>
-                <button onClick={() => setRejectModalOpen(false)} style={styles.cancelBtn}>{isHe ? "ביטול" : "Cancel"}</button>
+                <button onClick={() => setRejectModalOpen(false)} style={{ ...styles.cancelBtn, width: isMobile ? '100%' : 'auto' }}>{isHe ? "ביטול" : "Cancel"}</button>
                 <button 
                   onClick={async () => {
                     if (!rejectionMessage.trim()) {
@@ -226,7 +231,7 @@ export default function HomePage() {
                       setRejectModalOpen(false);
                     }
                   }}
-                  style={styles.rejectConfirmBtn}
+                  style={{ ...styles.rejectConfirmBtn, width: isMobile ? '100%' : 'auto' }}
                 >
                   {isHe ? "דחה/י בקשה" : "Reject Request"}
                 </button>
@@ -276,7 +281,7 @@ export default function HomePage() {
                 </label>
               </div>
               <div style={styles.modalActions}>
-                <button onClick={() => setContactModalOpen(false)} style={styles.cancelBtn}>{isHe ? "ביטול" : "Cancel"}</button>
+                <button onClick={() => setContactModalOpen(false)} style={{ ...styles.cancelBtn, width: isMobile ? '100%' : 'auto' }}>{isHe ? "ביטול" : "Cancel"}</button>
                 <button 
                   onClick={async () => {
                     if (!contactSubject.trim() || !contactMessage.trim()) {
@@ -299,7 +304,8 @@ export default function HomePage() {
                     color: '#0b1021',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    fontSize: 14
+                    fontSize: 14,
+                    width: isMobile ? '100%' : 'auto'
                   }}
                 >
                   {isHe ? "שליחת הודעה" : "Send Message"}
@@ -323,14 +329,15 @@ export default function HomePage() {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: isMobile ? "stretch" : "center",
                     border: "1px solid #e2e8f0",
                     borderRadius: 12,
                     padding: 12,
                     background: "white",
                     boxShadow: "0 6px 16px rgba(15, 23, 42, 0.06)",
                     gap: 12,
-                    flexWrap: "wrap"
+                    flexWrap: "wrap",
+                    flexDirection: isMobile ? "column" : "row"
                   }}
                 >
                   <div style={{ display: "grid", gap: 4 }}>
