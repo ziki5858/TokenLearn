@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n/useI18n';
 import { useResponsiveLayout } from '../lib/responsive';
 
-export default function TokenBalanceMenu({ tokenSummary }) {
+export default function TokenBalanceMenu({ tokenSummary, compact = false }) {
   const { t } = useI18n();
   const { isMobile } = useResponsiveLayout();
   const [isHovered, setIsHovered] = useState(false);
@@ -21,13 +21,15 @@ export default function TokenBalanceMenu({ tokenSummary }) {
   }, []);
 
   const isOpen = isHovered || isPinnedOpen;
+  const useCompactLayout = compact || isMobile;
+  const availableLabel = Number(tokenSummary?.available ?? 0);
 
   return (
     <div
       ref={menuRef}
       style={{
         ...styles.wrapper,
-        width: isMobile ? '100%' : 'auto'
+        width: compact ? 'auto' : isMobile ? '100%' : 'auto'
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -36,15 +38,20 @@ export default function TokenBalanceMenu({ tokenSummary }) {
         type="button"
         style={{
           ...styles.trigger,
-          width: isMobile ? '100%' : 'auto',
-          justifyContent: isMobile ? 'space-between' : 'center'
+          width: compact ? 'auto' : isMobile ? '100%' : 'auto',
+          justifyContent: compact ? 'center' : isMobile ? 'space-between' : 'center',
+          padding: compact ? '8px 12px' : styles.trigger.padding
         }}
         onClick={() => setIsPinnedOpen((prev) => !prev)}
         aria-expanded={isOpen}
       >
         <span style={styles.triggerContent}>
           <span style={styles.tokenSymbol} aria-hidden="true">TOK</span>
-          <span>{t('headerTopBar.tokenBalance')}</span>
+          {useCompactLayout ? (
+            <span>{availableLabel}</span>
+          ) : (
+            <span>{t('headerTopBar.tokenBalance')}</span>
+          )}
         </span>
       </button>
 
@@ -52,9 +59,9 @@ export default function TokenBalanceMenu({ tokenSummary }) {
         <div
           style={{
             ...styles.dropdown,
-            minWidth: isMobile ? 0 : 230,
-            width: isMobile ? '100%' : 'auto',
-            left: isMobile ? 0 : 'auto'
+            minWidth: useCompactLayout ? 220 : isMobile ? 0 : 230,
+            width: compact ? 'min(280px, calc(100vw - 24px))' : isMobile ? '100%' : 'auto',
+            left: isMobile && !compact ? 0 : 'auto'
           }}
         >
           <div style={{ ...styles.row, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>

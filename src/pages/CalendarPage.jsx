@@ -193,17 +193,34 @@ export default function CalendarPage() {
     <div style={{ ...styles.page, padding: isMobile ? 12 : 18 }}>
       {(loading || pageLoading) && <LoadingSpinner fullScreen />}
 
-      <section style={{ ...styles.hero, padding: isMobile ? 16 : 24 }}>
+      <section
+        style={{
+          ...styles.hero,
+          padding: isMobile ? 16 : 24,
+          borderRadius: isMobile ? 20 : styles.hero.borderRadius,
+          background: isMobile
+            ? '#ffffff'
+            : styles.hero.background,
+          border: isMobile
+            ? '1px solid rgba(203, 213, 225, 0.8)'
+            : styles.hero.border,
+          boxShadow: isMobile ? '0 10px 24px rgba(15, 23, 42, 0.05)' : 'none'
+        }}
+      >
         <div style={styles.heroText}>
           <h1 style={{ ...styles.title, fontSize: isMobile ? 24 : 30 }}>{isHe ? 'יומן שיעורים' : 'Lesson Calendar'}</h1>
-          <p style={styles.subtitle}>
+          <p style={{ ...styles.subtitle, marginTop: isMobile ? 6 : styles.subtitle.marginTop }}>
             {isHe
-              ? 'תצוגה חודשית פנימית של כל השיעורים שלך, עם מעבר מהיר לשיעור, פילטרים, ובחירת יום להצגת הפרטים.'
-              : 'A built-in monthly view of all your lessons, with quick lesson access, filters, and a focused day panel.'}
+              ? (isMobile
+                ? 'מעבר מהיר בין החודש, הימים והשיעורים שלך.'
+                : 'תצוגה חודשית פנימית של כל השיעורים שלך, עם מעבר מהיר לשיעור, פילטרים, ובחירת יום להצגת הפרטים.')
+              : (isMobile
+                ? 'Quick access to your month, days, and lessons.'
+                : 'A built-in monthly view of all your lessons, with quick lesson access, filters, and a focused day panel.')}
           </p>
         </div>
 
-        <div style={{ ...styles.heroActions, width: isMobile ? '100%' : 'auto' }}>
+        <div style={{ ...styles.heroActions, width: isMobile ? '100%' : 'auto', display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? '1fr 1fr' : undefined }}>
           <Button variant="secondary" onClick={() => setCurrentMonth(addMonths(currentMonth, -1))} style={{ width: isMobile ? '100%' : 'auto' }}>
             {isHe ? 'חודש קודם' : 'Previous Month'}
           </Button>
@@ -211,7 +228,7 @@ export default function CalendarPage() {
             const now = new Date();
             setCurrentMonth(startOfMonth(now));
             setSelectedDate(now);
-          }} style={{ width: isMobile ? '100%' : 'auto' }}>
+          }} style={{ width: isMobile ? '100%' : 'auto', gridColumn: isMobile ? '1 / -1' : 'auto' }}>
             {isHe ? 'חזרה להיום' : 'Back to Today'}
           </Button>
           <Button variant="secondary" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} style={{ width: isMobile ? '100%' : 'auto' }}>
@@ -221,26 +238,33 @@ export default function CalendarPage() {
       </section>
 
       <section style={styles.summaryGrid}>
-        <Card style={styles.summaryCard} hoverable={false}>
+        <Card style={{ ...styles.summaryCard, background: isMobile ? '#ffffff' : styles.summaryCard.background }} hoverable={false}>
           <div style={styles.summaryNumber}>{summary.total}</div>
           <div style={styles.summaryLabel}>{isHe ? 'סה״כ שיעורים בחודש המוצג' : 'Total lessons in view'}</div>
         </Card>
-        <Card style={styles.summaryCard} hoverable={false}>
+        <Card style={{ ...styles.summaryCard, background: isMobile ? '#ffffff' : styles.summaryCard.background }} hoverable={false}>
           <div style={{ ...styles.summaryNumber, color: '#1d4ed8' }}>{summary.scheduled}</div>
           <div style={styles.summaryLabel}>{isHe ? 'מתוזמנים' : 'Scheduled'}</div>
         </Card>
-        <Card style={styles.summaryCard} hoverable={false}>
+        <Card style={{ ...styles.summaryCard, background: isMobile ? '#ffffff' : styles.summaryCard.background }} hoverable={false}>
           <div style={{ ...styles.summaryNumber, color: '#166534' }}>{summary.completed}</div>
           <div style={styles.summaryLabel}>{isHe ? 'הושלמו' : 'Completed'}</div>
         </Card>
-        <Card style={styles.summaryCard} hoverable={false}>
+        <Card style={{ ...styles.summaryCard, background: isMobile ? '#ffffff' : styles.summaryCard.background }} hoverable={false}>
           <div style={{ ...styles.summaryNumber, color: '#991b1b' }}>{summary.cancelled}</div>
           <div style={styles.summaryLabel}>{isHe ? 'בוטלו' : 'Cancelled'}</div>
         </Card>
       </section>
 
       <section style={{ ...styles.layout, gridTemplateColumns: isTablet ? '1fr' : 'minmax(0, 1.7fr) minmax(320px, 0.9fr)' }}>
-        <Card style={{ ...styles.calendarCard, padding: isMobile ? 14 : 18 }} hoverable={false}>
+        <Card
+          style={{
+            ...styles.calendarCard,
+            padding: isMobile ? 14 : 18,
+            background: isMobile ? '#ffffff' : styles.calendarCard.background
+          }}
+          hoverable={false}
+        >
           <div style={styles.calendarHeader}>
             <h2 style={{ ...styles.monthTitle, fontSize: isMobile ? 20 : 24 }}>{formatMonthTitle(currentMonth)}</h2>
             <div style={{ ...styles.filters, width: isMobile ? '100%' : 'auto' }}>
@@ -403,7 +427,14 @@ export default function CalendarPage() {
           )}
         </Card>
 
-        <Card style={{ ...styles.detailsCard, padding: isMobile ? 14 : 18 }} hoverable={false}>
+        <Card
+          style={{
+            ...styles.detailsCard,
+            padding: isMobile ? 14 : 18,
+            background: isMobile ? '#ffffff' : styles.detailsCard.background
+          }}
+          hoverable={false}
+        >
           <div style={styles.detailsHeader}>
             <h2 style={{ ...styles.detailsTitle, fontSize: isMobile ? 20 : 22 }}>
               {selectedDate.toLocaleDateString(isHe ? 'he-IL' : 'en-US', {

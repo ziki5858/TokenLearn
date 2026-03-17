@@ -55,12 +55,21 @@ export default function AppLayout() {
   };
 
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'} style={styles.page}>
+    <div
+      dir={isRTL ? 'rtl' : 'ltr'}
+      style={{
+        ...styles.page,
+        background: isMobile ? '#f3f7fb' : styles.page.background
+      }}
+    >
       <header
         style={{
           ...styles.header,
           padding: isMobile ? '12px 12px' : '16px 24px',
-          marginBottom: isMobile ? '1rem' : '1.4rem'
+          marginBottom: isMobile ? '0.75rem' : '1.4rem',
+          background: isMobile ? 'rgba(255, 255, 255, 0.96)' : styles.header.background,
+          boxShadow: isMobile ? '0 8px 22px rgba(15, 23, 42, 0.05)' : styles.header.boxShadow,
+          backdropFilter: isMobile ? 'blur(8px)' : styles.header.backdropFilter
         }}
       >
         <div
@@ -120,26 +129,29 @@ export default function AppLayout() {
 
           <div
             style={{
-              ...styles.controls,
-              marginLeft: isTablet ? 0 : 'auto',
-              width: isTablet ? '100%' : 'auto',
-              flexDirection: isMobile ? 'column' : 'row',
-              alignItems: isMobile ? 'stretch' : 'center',
-              justifyContent: isTablet ? 'space-between' : 'flex-end'
-            }}
-          >
-            <TokenBalanceMenu tokenSummary={tokenSummary} />
+            ...styles.controls,
+            marginLeft: isTablet ? 0 : 'auto',
+            width: isTablet ? '100%' : 'auto',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: isTablet ? 'space-between' : 'flex-end'
+          }}
+        >
+            <TokenBalanceMenu tokenSummary={tokenSummary} compact={isMobile} />
             <button
               type="button"
               onClick={handleLogout}
+              aria-label={t('nav.logout')}
+              title={t('nav.logout')}
               style={{
                 ...styles.logoutBtn,
-                width: isMobile ? '100%' : 'auto'
+                width: 'auto',
+                padding: isMobile ? '8px 12px' : styles.logoutBtn.padding
               }}
             >
-              🚪 {t('nav.logout')}
+              🚪 {isMobile ? '' : t('nav.logout')}
             </button>
-            <LanguageSwitcher />
+            <LanguageSwitcher compact={isMobile} />
           </div>
         </div>
       </header>
@@ -153,8 +165,12 @@ export default function AppLayout() {
         <div
           style={{
             ...styles.contentShell,
-            borderRadius: isMobile ? 18 : 24,
-            padding: isMobile ? '10px 8px' : '12px 10px'
+            borderRadius: isMobile ? 0 : 24,
+            padding: isMobile ? '0' : '12px 10px',
+            border: isMobile ? 'none' : styles.contentShell.border,
+            background: isMobile ? 'transparent' : styles.contentShell.background,
+            boxShadow: isMobile ? 'none' : styles.contentShell.boxShadow,
+            backdropFilter: isMobile ? 'none' : styles.contentShell.backdropFilter
           }}
         >
           <Outlet />

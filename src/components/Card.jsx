@@ -1,15 +1,19 @@
+import { useResponsiveLayout } from '../lib/responsive';
+
 export default function Card({ children, style, hoverable = true }) {
+  const { isMobile } = useResponsiveLayout();
+
   return (
     <div
       style={{
         width: '100%',
         maxWidth: 460,
         border: '1px solid rgba(148, 163, 184, 0.25)',
-        borderRadius: 20,
-        padding: 24,
+        borderRadius: isMobile ? 16 : 20,
+        padding: isMobile ? 18 : 24,
         background: 'linear-gradient(145deg, rgba(255,255,255,0.98), rgba(248,250,252,0.95))',
-        boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)',
-        backdropFilter: 'blur(8px)',
+        boxShadow: isMobile ? '0 8px 20px rgba(15, 23, 42, 0.06)' : '0 10px 28px rgba(15, 23, 42, 0.08)',
+        backdropFilter: isMobile ? 'none' : 'blur(8px)',
         transition: hoverable ? 'all 0.22s ease' : 'none',
         ...style
       }}

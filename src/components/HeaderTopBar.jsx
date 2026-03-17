@@ -55,21 +55,23 @@ export default function HeaderTopBar({ tutorRating = null, onContactUs }) {
           ...styles.right,
           width: isTablet ? '100%' : 'auto',
           marginLeft: isTablet ? 0 : 'auto',
-          flexDirection: isMobile ? 'column' : 'row',
-          alignItems: isMobile ? 'stretch' : 'center'
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: isTablet ? 'space-between' : 'flex-end',
+          flexWrap: 'wrap'
         }}
       >
         <div
           style={{
             ...styles.ratingPill,
-            width: isMobile ? '100%' : 'auto',
-            textAlign: isMobile ? 'center' : 'start'
+            width: isMobile ? 'auto' : 'auto',
+            textAlign: 'start'
           }}
         >
           {t('headerTopBar.tutorRating')}: <b>{tutorRating ?? t('common.na')}</b>
         </div>
-        <TokenBalanceMenu tokenSummary={tokenSummary} />
-        <LanguageSwitcher />
+        <TokenBalanceMenu tokenSummary={tokenSummary} compact={isMobile} />
+        <LanguageSwitcher compact={isMobile} />
       </div>
     </header>
   );

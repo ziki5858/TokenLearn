@@ -127,3 +127,9 @@ select:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+@media (max-width: 640px) {
+  body {
+    background: linear-gradient(180deg, #f4f7fb 0%, #eef4fa 100%);
+  }
+}

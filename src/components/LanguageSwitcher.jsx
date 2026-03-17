@@ -1,36 +1,42 @@
 import { useI18n } from '../i18n/useI18n';
 import { useResponsiveLayout } from '../lib/responsive';
 
-export default function LanguageSwitcher() {
+export default function LanguageSwitcher({ compact = false }) {
   const { language, setLanguage, t } = useI18n();
   const { isMobile } = useResponsiveLayout();
+  const useCompactLayout = compact || isMobile;
 
   return (
     <label
       style={{
         ...styles.wrapper,
-        flexDirection: isMobile ? 'column' : 'row',
-        alignItems: isMobile ? 'stretch' : 'center',
-        width: isMobile ? '100%' : 'auto'
+        flexDirection: useCompactLayout ? 'row' : 'column',
+        alignItems: 'center',
+        width: compact ? 'auto' : isMobile ? '100%' : 'auto',
+        padding: compact ? '6px 10px' : styles.wrapper.padding,
+        gap: compact ? 6 : 8
       }}
     >
-      <span
-        style={{
-          ...styles.label,
-          minWidth: isMobile ? 0 : 70,
-          whiteSpace: isMobile ? 'normal' : 'nowrap',
-          textAlign: isMobile ? 'center' : 'start'
-        }}
-      >
-        🌐 {t('common.language')}
-      </span>
+      {!compact && (
+        <span
+          style={{
+            ...styles.label,
+            minWidth: useCompactLayout ? 0 : 70,
+            whiteSpace: useCompactLayout ? 'normal' : 'nowrap',
+            textAlign: useCompactLayout ? 'center' : 'start'
+          }}
+        >
+          🌐 {t('common.language')}
+        </span>
+      )}
+      {compact && <span style={styles.compactIcon}>🌐</span>}
       <select
         value={language}
         onChange={(e) => setLanguage(e.target.value)}
         style={{
           ...styles.select,
-          minWidth: isMobile ? 0 : 86,
-          width: isMobile ? '100%' : 'auto'
+          minWidth: compact ? 72 : useCompactLayout ? 0 : 86,
+          width: compact ? 'auto' : isMobile ? '100%' : 'auto'
         }}
       >
         <option value="he">{t('common.hebrew')}</option>
@@ -57,6 +63,10 @@ const styles = {
     fontWeight: 700,
     minWidth: 70,
     whiteSpace: 'nowrap'
+  },
+  compactIcon: {
+    fontSize: 14,
+    lineHeight: 1
   },
   select: {
     border: '1px solid #cbd5e1',
