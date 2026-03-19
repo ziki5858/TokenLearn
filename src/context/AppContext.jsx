@@ -148,7 +148,7 @@ export function AppProvider({ children }) {
   };
 
   const syncCurrentUserProfile = async () => {
-    const payload = await apiRequest('/api/profile');
+    const payload = await apiRequest('/api/users/me');
     mergeUserState(setUser, payload);
     return payload;
   };
@@ -204,7 +204,7 @@ export function AppProvider({ children }) {
 
   const updateUserProfile = async (profileData) => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/profile', {
+      const payload = await apiRequest('/api/users/me', {
         method: 'PATCH',
         body: JSON.stringify(profileData)
       });
@@ -277,7 +277,7 @@ export function AppProvider({ children }) {
 
   const contactAdmin = async (subject, message) => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/admin/contacts', {
+      const payload = await apiRequest('/api/support-threads', {
         method: 'POST',
         body: JSON.stringify({ subject, message })
       });
@@ -288,13 +288,13 @@ export function AppProvider({ children }) {
 
   const getAdminContactThread = async (contactId) => {
     return apiCall(async () => {
-      return apiRequest(`/api/admin/contacts/${contactId}`);
+      return apiRequest(`/api/support-threads/${contactId}`);
     });
   };
 
   const replyToAdminContact = async (contactId, message) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/admin/contacts/${contactId}/messages`, {
+      const payload = await apiRequest(`/api/support-threads/${contactId}/messages`, {
         method: 'POST',
         body: JSON.stringify({ message })
       });
@@ -316,7 +316,7 @@ export function AppProvider({ children }) {
 
   const blockTutor = async (tutorId) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/admin/users/${tutorId}`, {
+      const payload = await apiRequest(`/api/users/${tutorId}`, {
         method: 'PATCH',
         body: JSON.stringify({ isBlockedTutor: true })
       });
@@ -327,7 +327,7 @@ export function AppProvider({ children }) {
 
   const unblockTutor = async (tutorId) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/admin/users/${tutorId}`, {
+      const payload = await apiRequest(`/api/users/${tutorId}`, {
         method: 'PATCH',
         body: JSON.stringify({ isBlockedTutor: false })
       });
@@ -338,7 +338,7 @@ export function AppProvider({ children }) {
 
   const login = async (email, password) => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/session', {
+      const payload = await apiRequest('/api/sessions', {
         method: 'POST',
         body: JSON.stringify({ email, password })
       });
@@ -362,7 +362,7 @@ export function AppProvider({ children }) {
 
   const logout = async () => {
     const result = await apiCall(async () => {
-      await apiRequest('/api/session', {
+      await apiRequest('/api/sessions/current', {
         method: 'DELETE'
       });
       return { message: 'Logged out successfully' };
@@ -385,18 +385,25 @@ export function AppProvider({ children }) {
 
   const verifySecretAnswer = async (email, secretAnswer) => {
     return apiCall(async () => {
-      return apiRequest('/api/password-reset-tokens', {
-        method: 'POST',
-        body: JSON.stringify({ email, secretAnswer })
+      const payload = await apiRequest(`/api/password-reset-requests/${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ secretAnswer })
       });
+
+      return {
+        ...payload,
+        verified: payload?.verified === true
+          || payload?.status === 'verified'
+          || Boolean(payload?.resetToken)
+      };
     });
   };
 
   const resetPassword = async (email, resetToken, newPassword) => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/password-reset-completions', {
-        method: 'POST',
-        body: JSON.stringify({ email, resetToken, newPassword })
+      const payload = await apiRequest(`/api/password-reset-requests/${encodeURIComponent(email)}/password`, {
+        method: 'PUT',
+        body: JSON.stringify({ resetToken, newPassword })
       });
       addNotification(getUiMessage('passwordReset'), 'success');
       return payload;
@@ -405,7 +412,7 @@ export function AppProvider({ children }) {
 
   const googleLogin = async (googleToken) => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/identity-providers/google/sessions', {
+      const payload = await apiRequest('/api/sessions', {
         method: 'POST',
         body: JSON.stringify({ googleToken })
       });
@@ -415,7 +422,7 @@ export function AppProvider({ children }) {
   };
 
   const verifyToken = async () => {
-    return apiCall(async () => apiRequest('/api/session'));
+    return apiCall(async () => apiRequest('/api/sessions/current'));
   };
 
   const getCurrentUserProfile = async () => {
@@ -427,7 +434,7 @@ export function AppProvider({ children }) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const payload = await apiRequest('/api/profile/photo', {
+      const payload = await apiRequest('/api/users/me/photo', {
         method: 'PUT',
         body: formData
       });
@@ -446,7 +453,7 @@ export function AppProvider({ children }) {
 
   const getTokenBalance = async () => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/wallet');
+      const payload = await apiRequest('/api/users/me/wallet');
       const total = payload.total ?? payload.balance ?? 0;
       mergeUserState(setUser, {
         tokenBalance: total,
@@ -463,9 +470,9 @@ export function AppProvider({ children }) {
 
   const buyTokens = async (amount, paymentMethod = 'credit_card', paymentDetails = {}) => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/token-purchases', {
+      const payload = await apiRequest('/api/users/me/token-transactions', {
         method: 'POST',
-        body: JSON.stringify({ amount, paymentMethod, paymentDetails })
+        body: JSON.stringify({ type: 'purchase', amount, paymentMethod, paymentDetails })
       });
       await getTokenBalance();
       return payload;
@@ -474,9 +481,9 @@ export function AppProvider({ children }) {
 
   const transferTokens = async (toUserId, amount, lessonId) => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/token-transfers', {
+      const payload = await apiRequest('/api/users/me/token-transactions', {
         method: 'POST',
-        body: JSON.stringify({ toUserId, amount, lessonId, reason: 'lesson_payment' })
+        body: JSON.stringify({ type: 'transfer', toUserId, amount, lessonId, reason: 'lesson_payment' })
       });
       await getTokenBalance();
       return payload;
@@ -485,8 +492,8 @@ export function AppProvider({ children }) {
 
   const getTokenHistory = async (limit = 20, offset = 0) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/token-transactions${toQueryString({ limit, offset })}`);
-      const transactions = firstArray(payload, ['transactions']);
+      const payload = await apiRequest(`/api/users/me/token-transactions${toQueryString({ limit, offset })}`);
+      const transactions = firstArray(payload, ['items', 'transactions']);
       const totalCount = payload?.totalCount ?? transactions.length;
 
       return {
@@ -498,13 +505,15 @@ export function AppProvider({ children }) {
 
   const getCourses = async (search = '', category = '', limit = 5000) => {
     return apiCall(async () => {
-      return apiRequest(`/api/courses${toQueryString({ search, category, limit })}`);
+      const payload = await apiRequest(`/api/courses${toQueryString({ search, category, limit })}`);
+      return Array.isArray(payload) ? { courses: payload } : payload;
     });
   };
 
   const getCourseCategories = async () => {
     return apiCall(async () => {
-      return apiRequest('/api/courses/categories');
+      const payload = await apiRequest('/api/courses/categories');
+      return Array.isArray(payload) ? { categories: payload } : payload;
     });
   };
 
@@ -534,21 +543,25 @@ export function AppProvider({ children }) {
 
   const getUpcomingLessons = async (role) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/lessons${toQueryString({ role, temporal: 'upcoming' })}`);
-      return firstArray(payload, ['lessons', 'items']);
+      const payload = await apiRequest(`/api/lessons${toQueryString({ role, status: 'scheduled' })}`);
+      return firstArray(payload, ['items', 'lessons']);
     });
   };
 
   const getLessonCalendar = async ({ from, to, role, status } = {}) => {
     return apiCall(async () => {
-      return apiRequest(`/api/lessons${toQueryString({ from, to, role, status })}`);
+      const payload = await apiRequest(`/api/lessons${toQueryString({ from, to, role, status })}`);
+      return {
+        ...payload,
+        lessons: firstArray(payload, ['items', 'lessons'])
+      };
     });
   };
 
   const getLessonHistory = async (limit = 20, offset = 0) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/lessons${toQueryString({ temporal: 'history', limit, offset })}`);
-      const lessons = firstArray(payload, ['lessons']);
+      const payload = await apiRequest(`/api/lessons${toQueryString({ status: 'completed,cancelled', limit, offset })}`);
+      const lessons = firstArray(payload, ['items', 'lessons']);
       const totalCount = payload?.totalCount ?? lessons.length;
       return { lessons, totalCount };
     });
@@ -570,6 +583,13 @@ export function AppProvider({ children }) {
     return apiCall(async () => {
       return apiRequest(`/api/lessons/${lessonId}`);
     });
+  };
+
+  const getLessonMessages = async (lessonId, limit = 30, offset = 0) => {
+    return apiCall(async () => {
+      const payload = await apiRequest(`/api/lessons/${lessonId}/messages${toQueryString({ limit, offset })}`);
+      return Array.isArray(payload) ? payload : firstArray(payload, ['items', 'messages']);
+    }, { notifyOnError: false, trackPending: false });
   };
 
   const rateLesson = async (lessonId, rating, comment) => {
@@ -644,7 +664,7 @@ export function AppProvider({ children }) {
 
   const getUnreadNotificationCount = async () => {
     return apiCall(async () => {
-      const payload = await apiRequest('/api/notifications/statistics');
+      const payload = await apiRequest('/api/notifications/unread-count');
       const count = Number(payload?.count ?? 0);
       const normalizedCount = Number.isNaN(count) ? 0 : count;
       setUnreadNotificationCount(normalizedCount);
@@ -658,7 +678,7 @@ export function AppProvider({ children }) {
         method: 'PATCH',
         body: JSON.stringify({ ids })
       });
-      const countPayload = await apiRequest('/api/notifications/statistics');
+      const countPayload = await apiRequest('/api/notifications/unread-count');
       const count = Number(countPayload?.count ?? 0);
       setUnreadNotificationCount(Number.isNaN(count) ? 0 : count);
       return payload;
@@ -678,55 +698,59 @@ export function AppProvider({ children }) {
 
   const getAdminDashboard = async () => {
     return apiCall(async () => {
-      return apiRequest('/api/admin/analytics/summary');
+      return apiRequest('/api/admin/reports/summary');
     });
   };
 
   const getAdminUsers = async (limit = 50, offset = 0, role) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/admin/users${toQueryString({ limit, offset, role })}`);
-      return firstArray(payload, ['users', 'items']);
+      const payload = await apiRequest(`/api/users${toQueryString({ limit, offset, role })}`);
+      return Array.isArray(payload) ? payload : firstArray(payload, ['items', 'users']);
     });
   };
 
   const getAdminStatistics = async () => {
     return apiCall(async () => {
-      return apiRequest('/api/admin/analytics/statistics');
+      return apiRequest('/api/admin/reports/statistics');
     });
   };
 
   const getAdminLessons = async (status, limit = 50, offset = 0) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/admin/lessons${toQueryString({ status, limit, offset })}`);
-      return firstArray(payload, ['lessons', 'items']);
+      const payload = await apiRequest(`/api/lessons${toQueryString({ participant: 'all', status, limit, offset })}`);
+      return firstArray(payload, ['items', 'lessons']);
     });
   };
 
   const getAdminRatings = async (limit = 200, offset = 0) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/admin/ratings${toQueryString({ limit, offset })}`);
-      return firstArray(payload, ['ratings', 'items']);
+      const payload = await apiRequest(`/api/ratings${toQueryString({ limit, offset })}`);
+      return firstArray(payload, ['items', 'ratings']);
     });
   };
 
   const adjustUserTokens = async (userId, amount, reason = 'admin_adjustment') => {
     return apiCall(async () => {
-      return apiRequest(`/api/admin/users/${userId}/token-adjustments`, {
+      return apiRequest(`/api/users/${userId}/token-transactions`, {
         method: 'POST',
-        body: JSON.stringify({ amount, reason })
+        body: JSON.stringify({ type: 'admin_adjustment', amount, reason })
       });
     });
   };
 
   const getAdminUserTokenHistory = async (userId, limit = 50, offset = 0) => {
     return apiCall(async () => {
-      return apiRequest(`/api/admin/users/${userId}/token-transactions${toQueryString({ limit, offset })}`);
+      const payload = await apiRequest(`/api/users/${userId}/token-transactions${toQueryString({ limit, offset })}`);
+      return {
+        ...payload,
+        transactions: firstArray(payload, ['items', 'transactions'])
+      };
     });
   };
 
   const updateAdminUser = async (userId, userData) => {
     return apiCall(async () => {
-      return apiRequest(`/api/admin/users/${userId}`, {
+      return apiRequest(`/api/users/${userId}`, {
         method: 'PATCH',
         body: JSON.stringify(userData)
       });
@@ -735,7 +759,7 @@ export function AppProvider({ children }) {
 
   const updateAdminRating = async (ratingId, ratingData) => {
     return apiCall(async () => {
-      const payload = await apiRequest(`/api/admin/ratings/${ratingId}`, {
+      const payload = await apiRequest(`/api/ratings/${ratingId}`, {
         method: 'PATCH',
         body: JSON.stringify(ratingData)
       });
@@ -746,7 +770,7 @@ export function AppProvider({ children }) {
 
   const deleteAdminUser = async (userId) => {
     return apiCall(async () => {
-      return apiRequest(`/api/admin/users/${userId}`, {
+      return apiRequest(`/api/users/${userId}`, {
         method: 'DELETE'
       });
     });
@@ -773,8 +797,8 @@ export function AppProvider({ children }) {
       setAuthToken(token);
 
       try {
-        await apiRequest('/api/session');
-        const payload = await apiRequest('/api/profile');
+        await apiRequest('/api/sessions/current');
+        const payload = await apiRequest('/api/users/me');
         if (isMounted) {
           mergeUserState(setUser, payload);
           unauthorizedNotifiedRef.current = false;
@@ -905,6 +929,7 @@ export function AppProvider({ children }) {
     getLessonCalendar,
     getLessonHistory,
     getLessonDetails,
+    getLessonMessages,
     completeLesson,
     rateLesson,
     updateLessonRating,

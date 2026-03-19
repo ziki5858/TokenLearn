@@ -23,6 +23,22 @@ const CODE_MESSAGES = {
     he: "הבקשה שנשלחה אינה תקינה.",
     en: "The request is invalid."
   },
+  INVALID_SESSION_REQUEST: {
+    he: "יש לשלוח אימייל וסיסמה או אסימון Google תקין.",
+    en: "Provide an email/password pair or a valid Google token."
+  },
+  INVALID_TRANSACTION_TYPE: {
+    he: "סוג תנועת הטוקנים אינו נתמך.",
+    en: "The token transaction type is not supported."
+  },
+  INVALID_QUERY: {
+    he: "פרמטרי החיפוש שנשלחו אינם תקינים.",
+    en: "The supplied query parameters are invalid."
+  },
+  VALIDATION_ERROR: {
+    he: "אחד השדות שנשלחו אינו תקין.",
+    en: "One or more submitted fields are invalid."
+  },
   INVALID_COURSE: {
     he: "הקורס שנבחר אינו תקין.",
     en: "Selected course is invalid."
@@ -42,6 +58,10 @@ const CODE_MESSAGES = {
   FORBIDDEN: {
     he: "אין הרשאה לבצע פעולה זו.",
     en: "You are not allowed to perform this action."
+  },
+  UNAUTHORIZED: {
+    he: "פג תוקף ההתחברות או שאין הרשאה לבקשה הזו.",
+    en: "Your session expired or you are not authorized for this request."
   },
   INVALID_STATE: {
     he: "לא ניתן לבצע את הפעולה במצב הנוכחי.",

@@ -5,7 +5,7 @@ const AUTH_TOKEN_KEY = 'authToken';
 /**
  * Thin fetch wrapper used across the entire client.
  *
- * It injects the stored JWT, understands the backend response envelope, and
+ * It injects the stored JWT, understands JSON and problem+json responses, and
  * throws consistent ApiError instances for pages and provider actions to handle.
  */
 function createApiError(message, { status, code, payload } = {}) {
@@ -60,7 +60,7 @@ export async function apiRequest(path, options = {}) {
   }
 
   const contentType = response.headers.get('content-type') || '';
-  const payload = contentType.includes('application/json')
+  const payload = contentType.includes('json')
     ? await response.json()
     : contentType.includes('text/')
       ? await response.text()
@@ -69,12 +69,14 @@ export async function apiRequest(path, options = {}) {
   if (!response.ok) {
     const message = typeof payload === 'string'
       ? payload
-      : payload?.error?.message || payload?.message || payload?.errorCode || 'Request failed';
-    const code = typeof payload === 'object' ? payload?.error?.code || payload?.errorCode : undefined;
+      : payload?.detail || payload?.error?.message || payload?.message || payload?.errorCode || 'Request failed';
+    const code = typeof payload === 'object'
+      ? payload?.code || payload?.error?.code || payload?.errorCode
+      : undefined;
     throw createApiError(message, { status: response.status, code, payload });
   }
 
-  // Server responses are wrapped as { success, data, error }.
+  // Support the legacy envelope defensively while the client migrates.
   if (payload && typeof payload === 'object' && typeof payload.success === 'boolean') {
     if (!payload.success) {
       const message = payload?.error?.message || 'Request failed';

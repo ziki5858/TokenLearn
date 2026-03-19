@@ -22,7 +22,7 @@ export default function LessonPage() {
     updateLessonRating,
     cancelLesson,
     getLessonDetails,
-    getNotifications,
+    getLessonMessages,
     markNotificationsRead,
     sendLessonMessage,
     addNotification,
@@ -67,11 +67,7 @@ export default function LessonPage() {
     }
 
     setIsLoadingMessages(true);
-    const result = await getNotifications({
-      lessonId,
-      eventType: "LESSON_MESSAGE",
-      limit: 30
-    });
+    const result = await getLessonMessages(lessonId, 30, 0);
     setIsLoadingMessages(false);
 
     if (!result.success) {

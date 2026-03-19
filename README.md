@@ -119,10 +119,10 @@ npm run lint
 
 ### Password login
 
-- Credentials are sent to `POST /api/session`.
+- Credentials are sent to `POST /api/sessions`.
 - The backend returns the application JWT.
 - The client stores that JWT in `localStorage` under `authToken`.
-- On refresh, the app verifies the token and reloads `/api/profile`.
+- On refresh, the app verifies the token and reloads `/api/users/me`.
 
 ### Google sign-in
 
@@ -133,7 +133,7 @@ When users choose Google login:
 3. The client sends that token to:
 
 ```json
-POST /api/identity-providers/google/sessions
+POST /api/sessions
 { "googleToken": "<google_id_token>" }
 ```
 
