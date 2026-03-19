@@ -145,7 +145,7 @@ export default function LessonPage() {
   const hasValidEndTime = lessonEndDate instanceof Date && !Number.isNaN(lessonEndDate.getTime());
   const hasValidRatingEditWindow = ratingEditableUntilDate instanceof Date && !Number.isNaN(ratingEditableUntilDate.getTime());
   const canCompleteScheduledLesson = lesson.status === "scheduled" && hasValidEndTime && lessonEndDate <= now;
-  const canCancelScheduledLesson = lesson.status === "scheduled" && hasValidStartTime && lessonStartDate > now;
+  const canCancelScheduledLesson = !isStudent && lesson.status === "scheduled" && hasValidStartTime && lessonStartDate > now;
   const canEditExistingRating = Boolean(lesson.myRating) && hasValidRatingEditWindow && ratingEditableUntilDate >= now;
 
   const openRatingForm = () => {
@@ -561,7 +561,7 @@ export default function LessonPage() {
         onClose={() => setShowCancelModal(false)}
         onConfirm={handleCancelLesson}
         title={isHe ? "ביטול שיעור" : "Cancel Lesson"}
-        message={isHe ? "בטוח/ה שברצונך לבטל את השיעור? יבוצע החזר טוקנים." : "Are you sure you want to cancel this lesson? You will receive a token refund."}
+        message={isHe ? "בטוח/ה שברצונך לבטל את השיעור? יבוצע החזר טוקנים לתלמיד/ה." : "Are you sure you want to cancel this lesson? The student will receive a token refund."}
         confirmText={isHe ? "כן, לבטל" : "Yes, Cancel"}
         cancelText={isHe ? "להשאיר שיעור" : "Keep Lesson"}
         confirmStyle="danger"

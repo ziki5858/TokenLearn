@@ -91,6 +91,10 @@ const CODE_MESSAGES = {
     he: "אי אפשר לבטל שיעור שכבר הסתיים.",
     en: "A lesson that already ended cannot be cancelled."
   },
+  ONLY_TUTOR_CAN_CANCEL_SCHEDULED_LESSON: {
+    he: "רק המורה יכול/ה לבטל שיעור מאושר.",
+    en: "Only the tutor can cancel an approved lesson."
+  },
   INVALID_RATING: {
     he: "הדירוג חייב להיות בין 1 ל-5.",
     en: "Rating must be between 1 and 5."

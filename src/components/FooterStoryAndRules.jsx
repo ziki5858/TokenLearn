@@ -24,7 +24,7 @@ export default function FooterStoryAndRules() {
           <li>{isHe ? 'אי אפשר לבקש שיעור בלי מספיק טוקנים.' : 'You cannot request a lesson without enough tokens.'}</li>
           <li>{isHe ? 'הטוקנים מתעדכנים רק אחרי השלמת שיעור.' : 'Tokens update only after a lesson is completed.'}</li>
           <li>{isHe ? 'לכל בקשה יש סטטוס ברור.' : 'Every request has a clear status.'}</li>
-          <li>{isHe ? 'אפשר לבטל רק כשהסטטוס הוא Pending.' : 'You can cancel only while status is Pending.'}</li>
+          <li>{isHe ? 'תלמיד/ה יכול/ה לבטל רק בקשה ממתינה; אחרי אישור, רק המורה יכול/ה לבטל את השיעור.' : 'Students can cancel only pending requests; after approval, only the tutor can cancel the lesson.'}</li>
         </ul>
       </div>
     </footer>
